@@ -11,7 +11,7 @@
 #include "RWLock.h"
 #include "CheckPointInterface.h"
 
-namespace pandora {
+namespace voyager {
 
 class CheckPointOrderFixed :
     virtual public CheckPointInterface,

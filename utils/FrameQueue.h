@@ -3,7 +3,7 @@
 
 #include "BufHolder.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 class FrameQueue {

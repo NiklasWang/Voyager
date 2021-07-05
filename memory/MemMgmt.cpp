@@ -1,7 +1,7 @@
 #include "MemMgmt.h"
 #include "MemMgmtImpl.h"
 
-namespace pandora {
+namespace voyager {
 
 MemMgmt gDefaultMemPool;
 

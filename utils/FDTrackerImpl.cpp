@@ -5,7 +5,7 @@
 #include "RefBase.h"
 #include "Logs.h"
 
-namespace pandora {
+namespace voyager {
 
 FDTrackerImpl::FDInfo::FDInfo(int f) :
     fd(f)

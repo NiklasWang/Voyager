@@ -4,7 +4,7 @@
 #include "BufHolder.h"
 #include "FrameHelper.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 BufHolder<T>::BufHolder() :

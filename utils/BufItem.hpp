@@ -2,7 +2,7 @@
 #include "Memory.h"
 #include "FrameHelper.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 BufItem<T>::BufItem(

@@ -7,7 +7,7 @@
 #include "Common.h"
 #include "RefBase.h"
 
-namespace pandora {
+namespace voyager {
 
 #define INT64_INVALID_VALUE -1LL
 

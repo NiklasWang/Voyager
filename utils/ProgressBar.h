@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-namespace pandora {
+namespace voyager {
 
 class ProgressBar
 {

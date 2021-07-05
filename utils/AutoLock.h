@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 
-namespace pandora {
+namespace voyager {
 
 class AutoLock
 {

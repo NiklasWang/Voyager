@@ -5,7 +5,7 @@
 
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 typedef int32_t IdType;
 

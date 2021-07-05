@@ -1,6 +1,6 @@
 #include "FrameQueue.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 FrameQueue<T>::FrameQueue(uint32_t capacity) :

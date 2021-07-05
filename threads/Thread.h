@@ -11,7 +11,7 @@
 #include "SyncType.h"
 #include "ObjectBuffer.h"
 
-namespace pandora {
+namespace voyager {
 
 class Thread :
     virtual public noncopyable {

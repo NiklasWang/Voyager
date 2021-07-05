@@ -1,7 +1,7 @@
 #ifndef __Clist_H_
 #define __Clist_H_
 
-namespace pandora {
+namespace voyager {
 
 struct clist {
     struct clist *next, *prev;

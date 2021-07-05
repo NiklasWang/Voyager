@@ -4,7 +4,7 @@
 #include "Version.h"
 #include "Modules.h"
 
-namespace pandora {
+namespace voyager {
 
 enum LogType {
     LOG_TYPE_NONE,

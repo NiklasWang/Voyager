@@ -7,7 +7,7 @@
 #include "GlobalTraits.h"
 #include "BufItem.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 class BufHolder {

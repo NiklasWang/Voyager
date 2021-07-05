@@ -1,7 +1,6 @@
-#include "PandoraImpl.h"
 #include "Thread.h"
 
-namespace pandora {
+namespace voyager {
 
 int32_t Thread::callFunc(TaskBase *task, bool release)
 {

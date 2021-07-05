@@ -21,10 +21,10 @@
 #define LOG_TAG PROJNAME VERSION
 #endif
 
-namespace pandora {
+namespace voyager {
 
 #ifndef FS_LOG_FULL_PATH
-#define FS_LOG_FULL_PATH      "./pandora.log"
+#define FS_LOG_FULL_PATH      "./voyager.log"
 #endif
 #define FS_LOG_FULL_PATH_LAST FS_LOG_FULL_PATH ".bak"
 #define MAX_PROCESS_NAME_LEN  16
@@ -36,35 +36,16 @@ bool gLastSavingLogStatus = gSavingLog;
 int8_t gDebugController[][LOG_TYPE_MAX_INVALID + 1] = {
     // NONE,  DBG,  INF, WARN,  ERR, FATA, INVA
     {     0,    0,    1,    1,    1,    1,    0}, // MODULE_OTHERS
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PANDORA,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PANDORA_IMPL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CORE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PAL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PAL_IMPL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PLATFORM_OPS,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ALGORITHM_BASE_TEMPLATE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ALGORITHM_TEMPLATE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ALGORITHMS,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ALGORITHM_HELPER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PIPELINE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CONVERTER
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_THREAD_POOL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_MEMORY_POOL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_STATUS,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_STATUS_MANAGER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_XML,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CAMERA,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_PERFORMANCE_CHECKER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SYNC_CONTROLLER,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT_IMPL,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER_IMPL,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT_CORE,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER_CORE,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_OVERALL_CONTROL,
     {     0,    0,    1,    1,    1,    1,    0}, // MODULE_BUFFER_MANAGER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_FD_TRACKER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_OBJECT_BUFFER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_UTILS,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_COMMON,
-    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_RENDER,
-    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_TESTER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SIRIUS,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_EXTERNAL,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ION_HELPER,
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_FS_HELPER,
     {     1,    1,    1,    1,    1,    1,    1}, // MODULE_MAX_INVALID,
 };
 

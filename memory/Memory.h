@@ -3,7 +3,7 @@
 
 #include "MemMgmt.h"
 
-namespace pandora {
+namespace voyager {
 
 #ifdef ENABLE_MEMORY_POOL
 

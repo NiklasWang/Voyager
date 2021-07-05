@@ -3,7 +3,7 @@
 #include "FragementBuffer.h"
 #include "ObjectBuffer.h"
 
-namespace pandora {
+namespace voyager {
 
 template<typename T>
 T *FragementBuffer::get(const T &obj, BlockType block)

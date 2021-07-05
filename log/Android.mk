@@ -14,7 +14,7 @@ LOCAL_SHARED_LIBRARIES := $(PROJECT_SHARED_LIBS)
 
 LOCAL_CPP_FEATURES := $(PROJECT_CPP_FEATURES)
 
-LOCAL_MODULE := libpandora.log
+LOCAL_MODULE := libvoyager.log
 
 LOCAL_INCLUDE_MODULE := common
 include $(MAKE_RULES)/find.library.android.make.rule

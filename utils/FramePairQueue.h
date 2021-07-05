@@ -5,7 +5,7 @@
 
 #define SAME_TIMESTAMP_THRES 10*1e6
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 class FramePairQueue {

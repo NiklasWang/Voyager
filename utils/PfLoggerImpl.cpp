@@ -2,7 +2,7 @@
 #include "PfLoggerImpl.h"
 #include "TimeUtils.h"
 
-namespace pandora {
+namespace voyager {
 
 int32_t PfLoggerImpl::Timer::cnt = 0;
 

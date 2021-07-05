@@ -11,7 +11,7 @@
 #include "SyncType.h"
 #include "ObjectBuffer.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T = int32_t>
 class ThreadT {

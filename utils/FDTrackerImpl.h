@@ -10,7 +10,7 @@
 #include "RefBase.h"
 #include "RWLock.h"
 
-namespace pandora {
+namespace voyager {
 
 class FDTrackerImpl :
     virtual public noncopyable {

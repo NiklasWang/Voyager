@@ -10,7 +10,7 @@
 #include "SemaphoreTimeout.h"
 #include "CheckPointInterface.h"
 
-namespace pandora {
+namespace voyager {
 
 class ThreadPoolEx;
 

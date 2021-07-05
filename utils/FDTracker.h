@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <pthread.h>
 
-namespace pandora {
+namespace voyager {
 
 #ifndef COMPILE_C_ONLY
 

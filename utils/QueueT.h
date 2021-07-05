@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "clist.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 using match_fn_data = bool (*)(T *data, void *user_data, T *match_data);

@@ -1,7 +1,7 @@
 #include "FramePairQueue.h"
 #include "FrameQueue.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 int32_t FramePairQueue<T>::add(typename AlgTraits<T>::TaskType &task)

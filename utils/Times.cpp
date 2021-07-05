@@ -1,6 +1,6 @@
 #include "Times.h"
 
-namespace pandora {
+namespace voyager {
 
 Times::S::S(int32_t s) :
     value(s)

@@ -5,7 +5,7 @@
 
 #include "Semaphore.h"
 
-namespace pandora {
+namespace voyager {
 
 class SemaphoreTimeout :
     public Semaphore {

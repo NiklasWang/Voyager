@@ -3,7 +3,7 @@
 
 #include "ThreadPool.h"
 
-namespace pandora {
+namespace voyager {
 
 class ThreadPoolEx :
     public ThreadPool {

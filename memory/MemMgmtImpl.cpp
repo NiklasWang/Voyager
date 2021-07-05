@@ -4,7 +4,7 @@
 #define MAX_TOTAL_ALLOC_SIZE (3LL /*Gb*/ * 1024 /*Mb*/ * 1024 /*Kb*/ * 1024 /*byte*/)
 #define MAX_ALLOCABLE_SIZE   (3LL /*planes*/ * 108 /*Mb*/ * 1024 /*Kb*/ * 1024 /*byte*/ + 1)
 
-namespace pandora {
+namespace voyager {
 
 const int64_t MemMgmtImpl::mMaxTotalSize = MAX_TOTAL_ALLOC_SIZE;
 const int64_t MemMgmtImpl::mMaxAllocSize = MAX_ALLOCABLE_SIZE;

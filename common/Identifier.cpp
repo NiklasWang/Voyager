@@ -1,7 +1,7 @@
 #include "Identifier.h"
 #include "Atomic.h"
 
-namespace pandora {
+namespace voyager {
 
 IdType Identifier::mInstanceCnt = 0;
 

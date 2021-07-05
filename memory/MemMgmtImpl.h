@@ -7,7 +7,7 @@
 #include "Common.h"
 #include "RWLock.h"
 
-namespace pandora {
+namespace voyager {
 
 struct MemoryPool;
 

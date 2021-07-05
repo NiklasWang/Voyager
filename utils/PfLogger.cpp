@@ -2,7 +2,7 @@
 #include "PfLoggerImpl.h"
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 PfLogger *PfLogger::gInstance = NULL;
 

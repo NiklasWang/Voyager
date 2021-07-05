@@ -2,7 +2,7 @@
 
 #include "SemaphoreTimed.h"
 
-namespace pandora {
+namespace voyager {
 
 SemaphoreTimed::WaitStatus SemaphoreTimed::wait()
 {

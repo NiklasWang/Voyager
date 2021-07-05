@@ -1,7 +1,7 @@
 #include "SyncType.h"
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 const char * const SyncType::kTypeString[] = {
     [SYNC_TYPE]  = "sync",

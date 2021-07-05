@@ -4,7 +4,7 @@
 #include "Thread.h"
 #include "Semaphore.h"
 
-namespace pandora {
+namespace voyager {
 
 class ThreadPool :
     virtual public noncopyable {

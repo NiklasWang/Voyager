@@ -7,7 +7,7 @@
 #include "Identifier.h"
 #include "CheckPointInterface.h"
 
-namespace pandora {
+namespace voyager {
 
 class CheckPoint :
     virtual public CheckPointInterface,

@@ -1,7 +1,7 @@
 #include "Memory.h"
 #include "Thread.h"
 
-namespace pandora {
+namespace voyager {
 
 int32_t Thread::run(std::function<int32_t ()> func,
     std::function<int32_t (Thread *)> cb)

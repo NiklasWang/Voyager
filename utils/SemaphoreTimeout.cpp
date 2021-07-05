@@ -1,6 +1,6 @@
 #include "SemaphoreTimeout.h"
 
-namespace pandora {
+namespace voyager {
 
 int SemaphoreTimeout::wait()
 {

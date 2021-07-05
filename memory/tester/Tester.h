@@ -1,4 +1,4 @@
-namespace pandora {
+namespace voyager {
 
 int VALMemoryPoolTester();
 

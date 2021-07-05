@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace pandora {
+namespace voyager {
 
 class PfLoggerImpl;
 

@@ -5,7 +5,7 @@
 #include "QueueT.h"
 #include "Logs.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 QueueT<T>::QueueT()

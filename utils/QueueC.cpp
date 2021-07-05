@@ -6,7 +6,7 @@
 #include "Logs.h"
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 QueueC::QueueC()
 {

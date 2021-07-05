@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-namespace pandora {
+namespace voyager {
 
 /*
  * Simple mutex class.  The implementation is system-dependent.

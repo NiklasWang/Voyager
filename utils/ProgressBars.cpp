@@ -1,7 +1,7 @@
 #include "ProgressBars.h"
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 ProgressBars::ProgressBars(uint32_t totalCases) :
     mTotalCaseCount(totalCases),

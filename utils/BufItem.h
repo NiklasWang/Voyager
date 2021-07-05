@@ -5,7 +5,7 @@
 #include "GlobalTraits.h"
 #include "RefBase.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 struct BufItem :

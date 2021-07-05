@@ -6,7 +6,7 @@
 
 #include "ProgressBar.h"
 
-namespace pandora {
+namespace voyager {
 
 class ProgressBars
 {

@@ -1,7 +1,7 @@
 #include "Memory.h"
 #include "Thread.h"
 
-namespace pandora {
+namespace voyager {
 
 #define INTERNAL true
 

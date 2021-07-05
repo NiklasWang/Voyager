@@ -10,7 +10,7 @@
 #include "CheckPoint.h"
 #include "CheckPointOrderFixed.h"
 
-namespace pandora {
+namespace voyager {
 
 enum CheckPointType {
     CHECK_POINT_TYPE_RANDOM_ORDER,

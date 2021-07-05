@@ -8,7 +8,7 @@
 
 #define CHECKPOINT_NAME_MAX_LEN 4096
 
-namespace pandora {
+namespace voyager {
 
 CheckPoint gDefaultCheckPoint;
 

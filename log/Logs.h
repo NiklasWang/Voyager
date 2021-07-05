@@ -3,7 +3,7 @@
 
 #include "LogImpl.h"
 
-namespace pandora {
+namespace voyager {
 
 #ifdef ENABLE_LOGGER
 

@@ -8,7 +8,7 @@
 #include <string>
 #include <sys/time.h>
 
-namespace pandora {
+namespace voyager {
 
 class TimeUtils
 {

@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 
-namespace pandora {
+namespace voyager {
 
 enum BlockType {
     BLOCK_TYPE,

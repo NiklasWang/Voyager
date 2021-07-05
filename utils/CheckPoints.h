@@ -3,7 +3,7 @@
 
 #include "CheckPointsImpl.h"
 
-namespace pandora {
+namespace voyager {
 
 #ifdef ENABLE_CHECK_POINTS_TRACKER
 

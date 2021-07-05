@@ -6,7 +6,7 @@
 
 #include "Common.h"
 
-namespace pandora {
+namespace voyager {
 
 struct MemMgmtImpl;
 

@@ -5,7 +5,7 @@
 #include "Logs.h"
 #include "Atomic.h"
 
-namespace pandora {
+namespace voyager {
 
 template<typename T>
 ObjectBuffer<T>::ObjectInfo::ObjectInfo(T *aobj,

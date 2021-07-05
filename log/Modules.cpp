@@ -1,7 +1,7 @@
 #include "Modules.h"
 #include "string.h"
 
-namespace pandora {
+namespace voyager {
 
 
 static const char *const gModuleName[] = {

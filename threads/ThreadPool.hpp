@@ -1,6 +1,6 @@
 #include "ThreadPool.h"
 
-namespace pandora {
+namespace voyager {
 
 template <typename T>
 int32_t ThreadPool::run(std::function<int32_t (T *)> func, T *arg)
