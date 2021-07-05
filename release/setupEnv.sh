@@ -14,22 +14,4 @@ for dir in `ls .`; do
   fi
 done
 
-EXTERNALROOT=$PWD/../external
-EXTERNALDIR=$EXTERNALROOT
-for dir in `ls $EXTERNALROOT`; do
-  if [ -d $EXTERNALROOT/$dir ]; then
-    _dir=$EXTERNALROOT/$dir/release
-    if [ -e $_dir -a -d $_dir ]; then
-      EXTERNALDIR=$EXTERNALDIR:$_dir
-      echo "Export external path $_dir ..."
-    fi
-    _dir=$EXTERNALROOT/$dir/release/lib
-    if [ -e $_dir -a -d $_dir ]; then
-      EXTERNALDIR=$EXTERNALDIR:$_dir
-      echo "Export external path $_dir ..."
-    fi
-  fi
-done
-
-export LD_LIBRARY_PATH=$LOCALDIR:$EXTERNALDIR:$LD_LIBRARY_PATH
-export LIBGL_ALWAYS_SOFTWARE=1
+export LD_LIBRARY_PATH=$LOCALDIR:$LD_LIBRARY_PATH

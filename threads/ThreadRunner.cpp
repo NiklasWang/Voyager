@@ -16,15 +16,6 @@ int32_t Thread::callFunc(TaskBase *task, bool release)
         }
     }
 
-    if (task->module == MODULE_PANDORA_IMPL) {
-        TaskInf<PandoraImpl::ThreadTaskBase> *pandora =
-            static_cast<TaskInf<PandoraImpl::ThreadTaskBase> *>(task);
-        rc = pandora->func(pandora->arg);
-        if (release && NOTNULL(pandora) && NOTNULL(pandora->arg)) {
-            SECURE_DELETE(pandora->arg);
-        }
-    }
-
     return rc;
 }
 

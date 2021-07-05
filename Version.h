@@ -1,10 +1,10 @@
-#ifndef _PANDORA_VERSION_H_
-#define _PANDORA_VERSION_H_
+#ifndef _VOYAGER_VERSION_H_
+#define _VOYAGER_VERSION_H_
 
 namespace pandora {
 
-#define PROJNAME "Pandora"
-#define VERSION  "3.1.0"
+#define PROJNAME "Voyager"
+#define VERSION  "0.1.0"
 
 };
 
