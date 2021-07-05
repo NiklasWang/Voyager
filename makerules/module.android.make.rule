@@ -1,0 +1,4 @@
+_makefiles := $(shell ls $(MODULE_PATH)/*.Android.mk)
+_INCLUDE_MODULE_MAKE := $(sort $(_makefiles))
+
+include $(_INCLUDE_MODULE_MAKE)

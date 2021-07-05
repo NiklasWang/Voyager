@@ -1,0 +1,34 @@
+_CACHEFILE   := $(abspath $(LOCAL_PATH))/find.library.$(LOCAL_MODULE).android.make.cache
+_INCLUDE_DIR := $(filter-out $(LOCAL_MODULE), $(LOCAL_INCLUDE_MODULE))
+_INCLUDE_DIR := $(strip $(_INCLUDE_DIR))
+
+ifeq ($(findstring clean, $(MAKECMDGOALS))$(findstring release, $(MAKECMDGOALS)),)
+
+  define SaveCache
+    $(shell echo -e \
+      '$(_INCLUDE_DIR)'      "\n" \
+      '$(_LOCAL_C_INCLUDES)' "\n" > $(_CACHEFILE) \
+    )
+  endef
+
+  ifeq ($(_CACHEFILE), $(wildcard $(_CACHEFILE)))
+
+    _CACHE_INCLUDE_DIR = $(strip $(shell sed -n 1p $(_CACHEFILE)))
+
+    ifeq ($(_CACHE_INCLUDE_DIR), $(_INCLUDE_DIR))
+      $(info Dependency cache $(_CACHEFILE) hint, apply it.)
+      _LOCAL_C_INCLUDES := $(strip $(shell sed -n 2p $(_CACHEFILE)))
+    else
+      $(info Dependency changed, refresh cache $(_CACHEFILE) ...)
+      include $(MAKE_RULES)/find.library.noncache.android.make.rule
+      $(call SaveCache)
+    endif
+
+  else
+    $(info Not found dependency cache, generating $(_CACHEFILE) ...)
+    include $(MAKE_RULES)/find.library.noncache.android.make.rule
+    $(call SaveCache)
+
+  endif
+
+endif

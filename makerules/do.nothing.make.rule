@@ -1,0 +1,13 @@
+all: compile link
+
+compile:
+
+link:
+
+build:
+
+clean:
+
+release:
+
+.PHONY: all compile link clean release

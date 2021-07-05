@@ -1,0 +1,63 @@
+STATIC_LIBS := $(filter-out $(basename $(TARGET)), $(STATIC_LIBS))
+SHARED_LIBS := $(filter-out $(basename $(TARGET)), $(SHARED_LIBS))
+FORCED_LIBS := $(filter-out $(basename $(TARGET)), $(FORCED_LIBS))
+INCLUDE_DIR := $(filter-out $(basename $(TARGET)), $(INCLUDE_MODULE))
+
+LIB_DIRS = $(foreach libname, $(sort $(STATIC_LIBS) $(SHARED_LIBS) $(FORCED_LIBS)),  \
+    $(shell $(MAKE_RULE)/find.library.make.sh $(ROOT_DIR) $(libname))  \
+)
+
+INCL_DIRS = $(foreach libname, $(sort $(INCLUDE_DIR)),  \
+    $(shell $(MAKE_RULE)/find.library.make.sh $(ROOT_DIR) $(libname))  \
+)
+
+CFLAGS   += -I$(ROOT_DIR) -I$(shell pwd)
+CFLAGS   += $(patsubst %, -I%, $(LIB_DIRS))
+CFLAGS   += $(patsubst %, -I%, $(INCL_DIRS))
+CXXFLAGS += -I$(ROOT_DIR) -I$(shell pwd)
+CXXFLAGS += $(patsubst %, -I%, $(LIB_DIRS))
+CXXFLAGS += $(patsubst %, -I%, $(INCL_DIRS))
+LDFLAGS  += -fPIC $(if $(findstring $(DYLIB_EXT), $(TARGET)), -shared)
+LDFLAGS  += $(patsubst %, -L %, $(LIB_DIRS))
+
+
+define LoadKeywordValue
+  $(shell cat $(1) | grep $(2) | sed "s/$(strip $(2))[[:blank:]]*=/""/g" )
+endef
+
+EXPORT_FILE := $(foreach _DIR, $(LIB_DIRS) $(INCL_DIRS), $(_DIR)/make.export.config)
+EXPORT_FILE := $(wildcard $(EXPORT_FILE))
+ifneq ($(strip $(EXPORT_FILE)),)
+  _INCL = $(foreach FILE, $(EXPORT_FILE),                \
+    $(patsubst %, -I$(dir $(FILE))%,                     \
+      $(call LoadKeywordValue, $(FILE), EXPORT_INCLUDES) \
+    )                                                    \
+  )
+  CFLAGS   += $(_INCL)
+  CXXFLAGS += $(_INCL)
+  _CFLAGS = $(foreach FILE, $(EXPORT_FILE),              \
+    $(call LoadKeywordValue, $(FILE), EXPORT_CFLAGS)     \
+  )
+  CFLAGS   += $(_CFLAGS)
+  _CXXFLAGS = $(foreach FILE, $(EXPORT_FILE),            \
+    $(call LoadKeywordValue, $(FILE), EXPORT_CXXFLAGS)   \
+  )
+  CXXFLAGS += $(_CXXFLAGS)
+  _LINK = $(foreach FILE, $(EXPORT_FILE),                \
+    $(patsubst %, -L$(dir $(FILE))%,                     \
+      $(call LoadKeywordValue, $(FILE), EXPORT_LINK)     \
+    )                                                    \
+  )
+  LDFLAGS  += $(_LINK)
+  _LDFLAGS = $(foreach FILE, $(EXPORT_FILE),             \
+    $(call LoadKeywordValue, $(FILE), EXPORT_LDFLAGS)    \
+  )
+  LDFLAGS  += $(_LDFLAGS)
+endif
+
+
+LDFLAGS  += -Wl,-Bdynamic -Wl,--start-group $(patsubst lib%, -l%, $(SHARED_LIBS))
+LDFLAGS  += -Wl,--no-as-needed -Bdynamic $(patsubst lib%, -l%, $(FORCED_LIBS))
+LDFLAGS  += -Wl,-Bstatic $(patsubst lib%, -l%, $(STATIC_LIBS)) -Wl,--end-group
+LDFLAGS  += -Wl,-Bdynamic $(patsubst %, -l%, $(SYSTEM_LIBS))
+

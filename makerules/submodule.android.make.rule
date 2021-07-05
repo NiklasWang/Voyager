@@ -1,0 +1,7 @@
+_dirs := $(shell ls $(abspath $(LOCAL_PATH))/ -l | grep "^d" | awk -F '[ \t]' '{print $$NF}')
+_MAKE_SUB_MODULES := $(filter-out $(PROJECT_EXCLUDE_DIRS) $(exclude_dirs), $(_dirs))
+_MAKE_SUB_MODULES := $(sort $(_MAKE_SUB_MODULES))
+_MAKE_SUB_MODULES := $(compile_order) $(filter-out $(compile_order), $(_MAKE_SUB_MODULES))
+
+_INCLUDE_SUB_MODULE_MAKE := $(patsubst %, $(abspath $(LOCAL_PATH))/%/Android.mk, $(_MAKE_SUB_MODULES))
+include $(_INCLUDE_SUB_MODULE_MAKE)

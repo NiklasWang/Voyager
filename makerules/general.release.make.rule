@@ -1,0 +1,23 @@
+general_copy:
+	currdir=$$(pwd); \
+	localfile=$$(find $$currdir -type f -name "$(_FILE)"); \
+	if [ ! -z "$$localfile" ]; then \
+	  if [ ! -d "$(BIN_DIR)" ]; then \
+	    mkdir -p $(BIN_DIR); \
+	  fi; \
+	  echo "Release $$localfile to $(BIN_DIR)..."; \
+	  cp -Lf $$localfile $(BIN_DIR); \
+	fi;
+
+general_release:
+	$(foreach FILE, $(TARGET), \
+	  if [ ! -z $$(echo "$(FILE)" | grep "$(strip $(DYLIB_EXT))") ]; then \
+	    $(MAKE) -f $(firstword $(MAKEFILE_LIST)) general_copy _FILE=$(FILE); \
+	  fi; \
+	  if [ -z "$(strip $(EXE_EXT))" ]; then \
+	      $(MAKE) -f $(firstword $(MAKEFILE_LIST)) general_copy _FILE=$(FILE); \
+	  fi; \
+	  if [ ! -z "$(strip $(EXE_EXT))" -a -z $$(echo "$(FILE)" | grep "$(strip $(EXE_EXT))") ]; then \
+	    $(MAKE) -f $(firstword $(MAKEFILE_LIST)) general_copy _FILE=$(FILE); \
+	  fi; \
+	)

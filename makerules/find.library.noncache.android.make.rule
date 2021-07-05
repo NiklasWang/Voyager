@@ -1,0 +1,9 @@
+_dirs := $(shell ls $(abspath $(ROOT_PATH))/ -l | grep "^d" | awk -F '[ \t]' '{print $$NF}' )
+_SEARCHING_DIRS := $(filter-out $(PROJECT_EXCLUDE_DIRS) $(exclude_dirs), $(_dirs))
+_SEARCHING_DIRS := $(patsubst %, $(ROOT_PATH)/%, $(_SEARCHING_DIRS))
+
+_INCL_DIRS = $(foreach libname, $(sort $(_INCLUDE_DIR)), \
+    $(shell $(MAKE_RULES)/find.library.android.make.sh $(libname) $(_SEARCHING_DIRS) )  \
+)
+
+_LOCAL_C_INCLUDES := $(ROOT_PATH) $(strip $(_INCL_DIRS))

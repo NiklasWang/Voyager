@@ -1,0 +1,49 @@
+#ifndef _MODULES_H_
+#define _MODULES_H_
+
+#include <stdint.h>
+
+namespace pandora {
+
+enum ModuleType {
+    MODULE_OTHERS,
+    MODULE_PANDORA,
+    MODULE_PANDORA_IMPL,
+    MODULE_CORE,
+    MODULE_PAL,
+    MODULE_PAL_IMPL,
+    MODULE_PLATFORM_OPS,
+    MODULE_ALGORITHM_BASE_TEMPLATE,
+    MODULE_ALGORITHM_TEMPLATE,
+    MODULE_ALGORITHMS,
+    MODULE_FRAME_HELPER,
+    MODULE_PIPELINE,
+    MODULE_CONVERTER,
+    MODULE_THREAD_POOL,
+    MODULE_MEMORY_POOL,
+    MODULE_STATUS,
+    MODULE_STATUS_MANAGER,
+    MODULE_XML,
+    MODULE_CAMERA,
+    MODULE_PERFORMANCE_CHECKER,
+    MODULE_SYNC_CONTROLLER,
+    MODULE_BUFFER_MANAGER,
+    MODULE_FD_TRACKER,
+    MODULE_OBJECT_BUFFER,
+    MODULE_UTILS,
+    MODULE_COMMON,
+    MODULE_RENDER,
+    MODULE_TESTER,
+    MODULE_SIRIUS,
+    MODULE_EXTERNAL,
+    MODULE_MAX_INVALID,
+};
+
+ModuleType  getValidType(ModuleType type);
+const char *getModuleName(ModuleType type);
+const char *getModuleShortName(ModuleType type);
+uint32_t getMaxLenofShortName();
+
+};
+
+#endif

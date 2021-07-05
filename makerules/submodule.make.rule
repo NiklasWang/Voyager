@@ -1,0 +1,33 @@
+dirs := $(shell find . -maxdepth 1 -type d)
+dirs := $(basename $(patsubst ./%, %, $(dirs)))
+MAKE_SUB_MODULES    := $(filter-out $(exclude_dirs), $(dirs))
+MAKE_SUB_MODULES    := $(sort $(MAKE_SUB_MODULES))
+MAKE_SUB_MODULES    := $(compile_order) $(filter-out $(compile_order), $(MAKE_SUB_MODULES))
+CLEAN_SUB_MODULES   := $(addprefix clean_, $(MAKE_SUB_MODULES))
+COMPILE_SUB_MODULES := $(addprefix compile_, $(MAKE_SUB_MODULES))
+LINK_SUB_MODULES    := $(addprefix link_, $(MAKE_SUB_MODULES))
+BUILD_SUB_MODULES   := $(addprefix build_, $(MAKE_SUB_MODULES))
+RELEASE_SUB_MODULES := $(addprefix release_, $(MAKE_SUB_MODULES))
+
+include $(MAKE_RULE)/multithread.compile.make.rule
+
+$(MAKE_SUB_MODULES):
+	$(MAKE) $(THREAD_ARG) $(addprefix compile_, $@)
+	$(MAKE) $(THREAD_ARG) $(addprefix link_, $@)
+	$(MAKE) $(addprefix build_, $@)
+	$(MAKE) $(THREAD_ARG) $(addprefix release_, $@)
+
+$(COMPILE_SUB_MODULES):
+	$(MAKE) compile $(GLOBAL_MAKEFLAGS) -C $(patsubst compile_%, %, $@)
+
+$(LINK_SUB_MODULES):
+	$(MAKE) link $(GLOBAL_MAKEFLAGS) -C $(patsubst link_%, %, $@)
+
+$(BUILD_SUB_MODULES):
+	$(MAKE) build $(GLOBAL_MAKEFLAGS) -C $(patsubst build_%, %, $@)
+
+$(CLEAN_SUB_MODULES):
+	$(MAKE) clean $(GLOBAL_MAKEFLAGS) -C $(patsubst clean_%, %, $@)
+
+$(RELEASE_SUB_MODULES):
+	$(MAKE) release $(GLOBAL_MAKEFLAGS) -C $(patsubst release_%, %, $@)

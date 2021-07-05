@@ -1,0 +1,52 @@
+CACHEFILE = $(CURRDIR)/find.library.$(TARGET).make.cache
+CURRDIR   = $(shell pwd)
+STATIC_LIBS := $(strip $(STATIC_LIBS))
+SHARED_LIBS := $(strip $(SHARED_LIBS))
+FORCED_LIBS := $(strip $(FORCED_LIBS))
+SYSTEM_LIBS := $(strip $(SYSTEM_LIBS))
+INCLUDE_DIR := $(strip $(INCLUDE_MODULE))
+
+ifeq ($(findstring clean, $(MAKECMDGOALS))$(findstring release, $(MAKECMDGOALS)),)
+
+  define SaveCache
+    $(shell echo -e        \
+      '$(STATIC_LIBS)'"\n" \
+      '$(SHARED_LIBS)'"\n" \
+      '$(FORCED_LIBS)'"\n" \
+      '$(SYSTEM_LIBS)'"\n" \
+      '$(INCLUDE_DIR)'"\n" \
+      '$(CFLAGS)'     "\n" \
+      '$(CXXFLAGS)'   "\n" \
+      '$(LDFLAGS)'    "\n" > $(CACHEFILE) \
+    )
+  endef
+
+  ifeq ($(CACHEFILE), $(wildcard $(CACHEFILE)))
+
+    CACHE_STATIC_LIBS = $(strip $(shell sed -n 1p $(CACHEFILE)))
+    CACHE_SHARED_LIBS = $(strip $(shell sed -n 2p $(CACHEFILE)))
+    CACHE_FORCED_LIBS = $(strip $(shell sed -n 3p $(CACHEFILE)))
+    CACHE_SYSTEM_LIBS = $(strip $(shell sed -n 4p $(CACHEFILE)))
+    CACHE_INCLUDE_DIR = $(strip $(shell sed -n 5p $(CACHEFILE)))
+
+    ifeq ($(CACHE_STATIC_LIBS) $(CACHE_SHARED_LIBS) $(CACHE_FORCED_LIBS) $(CACHE_SYSTEM_LIBS) $(CACHE_INCLUDE_DIR), \
+      $(STATIC_LIBS) $(SHARED_LIBS) $(FORCED_LIBS) $(SYSTEM_LIBS) $(INCLUDE_DIR))
+      $(info Dependency cache $(CACHEFILE) hint, apply it.)
+      CFLAGS   := $(strip $(shell sed -n 6p $(CACHEFILE)))
+      CXXFLAGS := $(strip $(shell sed -n 7p $(CACHEFILE)))
+      LDFLAGS  := $(strip $(shell sed -n 8p $(CACHEFILE)))
+    else
+      $(info Dependency changed, refresh cache $(CACHEFILE) ...)
+      include $(MAKE_RULE)/find.library.noncache.make.rule
+      $(call SaveCache)
+    endif
+
+  else
+
+    $(info Not found dependency cache, generating $(CACHEFILE) ...)
+    include $(MAKE_RULE)/find.library.noncache.make.rule
+    $(call SaveCache)
+
+  endif
+
+endif
