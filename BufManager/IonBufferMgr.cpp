@@ -1,4 +1,5 @@
 #include "IonBufferMgr.h"
+#include "IonBufferMgrImpl.h"
 
 namespace voyager {
 

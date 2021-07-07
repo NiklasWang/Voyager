@@ -81,7 +81,7 @@ int32_t IonOperator::deinit()
 }
 
 IonOperator::IonBufferMgr() :
-    Identifier(MODULE_BUFFER_MANAGER, "IonBufferMgr", "1.0.0"),
+    Identifier(MODULE_ION_HELPER, "IonBufferMgr", "1.0.0"),
     ion_open_func(nullptr),
     ion_close_func(nullptr),
     ion_alloc_func(nullptr),

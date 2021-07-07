@@ -2,6 +2,7 @@
 #define _ION_BUFFER_MANAGER_H__
 
 #include <list>
+#include <pthread>
 
 #include "common.h"
 #include "BufferMgrIntf.h"
@@ -9,11 +10,14 @@
 
 namespace voyager {
 
+class IonBufferMgrImpl;
+
 class IonBufferMgr :
     public BufferMgrIntf,
     public Identifier,
     public noncopyable  {
 public:
+
     virtual int32_t alloc(void **buf, int64_t len) override;
     virtual int32_t alloc(void **buf, int64_t len, int32_t *fd) override;
     virtual int32_t import(void **buf, int32_t fd, int64_t len) override;

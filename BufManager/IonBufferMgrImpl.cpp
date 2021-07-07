@@ -10,6 +10,7 @@ pthread_mutex_t IonBufferMgrImpl::kInitLocker = PTHREAD_MUTEX_INITIALIZER;
 
 IonBufferMgrImpl::IonBufferMgrImpl() :
     Identifier(MODULE_ION_HELPER, "IonBufferMgrImpl", "1.0.0"),
+    mPageSize(0)
 {
 }
 
@@ -45,6 +46,14 @@ int32_t IonBufferMgrImpl::init()
         kIonRefs++;
     }
 
+    if (SUCCEED(rc)) {
+        mPageSize = sysconf(_SC_PAGESIZE);
+        if (mPageSize <= 0) {
+            LOGE(mModule, "Failed to get page size, %d", mPageSize);
+            rc = SYS_ERROR;
+        }
+    }
+
     return rc;
 }
 
@@ -78,8 +87,6 @@ int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len)
     return allocate(buf, len, &fd);
 }
 
-#define ION_ALLOC_ALIGN_SIZE   4096
-
 int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len, int32_t *fd)
 {
     int32_t rc = NO_ERROR;
@@ -87,7 +94,7 @@ int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len, int32_t *fd)
     int64_t aligned = len;
 
     if (SUCCEED(rc)) {
-        aligned = align_len_to_size(len, ION_ALLOC_ALIGN_SIZE);
+        aligned = align_len_to_size(len, mPageSize);
         rc = allocate(&buffer, aligned);
         if (SUCCEED(rc)) {
             *buf = buffer.ptr;
@@ -237,17 +244,21 @@ int32_t IonBufferMgrImpl::cacheIoctl(Buffer *buf, uint32_t cmd)
     memset(&flushData,  0x0, sizeof(flushData));
     memset(&customData, 0x0, sizeof(customData));
 
-    flushData.vaddr = buf->ptr;
-    flushData.fd = buf->fd;
-    flushData.handle = buf->handler;
-    flushData.length = buf->len;
+    if (SUCCEED(rc)) {
+        flushData.vaddr = buf->ptr;
+        flushData.fd = buf->fd;
+        flushData.handle = buf->handler;
+        flushData.length = buf->len;
 
-    customData.cmd = cmd;
-    customData.arg = (unsigned long)&flushData;
+        customData.cmd = cmd;
+        customData.arg = (unsigned long)&flushData;
+    }
 
-    rc = ioctl(kIonFd, ION_IOC_CUSTOM, &customData);
-    if (FAILED(rc)) {
-       LOGE(mModule, "Failed cache ioctl, %s", strerror(errno));
+    if (SUCCEED(rc)) {
+        rc = ioctl(kIonFd, ION_IOC_CUSTOM, &customData);
+        if (FAILED(rc)) {
+           LOGE(mModule, "Failed cache ioctl, %s", strerror(errno));
+        }
     }
 
     return rc;
@@ -312,13 +323,16 @@ int32_t IonBufferMgrImpl::release(Buffer *buf)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        if (!ISNULL(buf->ptr)) {
+        if (NOTNULL(buf->ptr)) {
             munmap(buf->ptr, buf->len);
+        } else {
+            rc = PARAM_INVALID;
+        }
+        if (buf->fd > 0) {
             close(buf->fd);
         } else {
             rc = PARAM_INVALID;
         }
-
     }
 
     if (SUCCEED(rc)) {

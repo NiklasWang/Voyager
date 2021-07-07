@@ -1,16 +1,15 @@
-#ifndef _ION_BUFFER_MANAGER_IMPL_H__
-#define _ION_BUFFER_MANAGER_IMPL_H__
+#ifndef _FS_BUFFER_MANAGER_IMPL_H__
+#define _FS_BUFFER_MANAGER_IMPL_H__
 
 #include <list>
-#include <pthread>
+#include <string>
 
 #include "common.h"
 #include "BufferMgrIntf.h"
-#include "IonOperator.h"
 
 namespace voyager {
 
-class IonBufferMgrImpl :
+class FSBufferMgr :
     public BufferMgrIntf,
     public Identifier,
     public noncopyable  {
@@ -25,17 +24,15 @@ public:
     virtual int32_t release(int32_t fd) override;
 
 public:
-    int32_t init();
-    int32_t deinit();
-    IonBufferMgrImpl();
-    virtual ~IonBufferMgrImpl();
+    FSBufferMgr();
+    virtual ~FSBufferMgr();
 
 private:
     struct Buffer {
         int32_t  fd;
         void    *ptr;
         int64_t  len;
-        ion_user_handle_t handler;
+        std::string fsName;
     };
 
 private:
@@ -43,19 +40,13 @@ private:
     Buffer *findBuf(int32_t fd);
     int32_t allocate(Buffer *buf, int64_t len);
     int32_t import(Buffer *buf, int32_t fd, int64_t len);
-    int32_t cacheIoctl(void *buf, uint32_t cmd);
-    int32_t cacheIoctl(Buffer *buf, uint32_t cmd);
     int32_t release(Buffer *buf);
     void    clear();
+    int32_t removeNotOccupiedFiles(const std::string &dir);
 
 private:
     std::list<Buffer> mBuffers;
     int64_t mPageSize;
-
-    static int32_t     kIonFd;
-    static IonOperator kIonHelper;
-    static int32_t     kIonRefs;
-    static pthread_mutex_t kInitLocker;
 };
 
 };
