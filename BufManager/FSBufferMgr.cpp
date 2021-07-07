@@ -11,7 +11,7 @@ FSBufferMgr::FSBufferMgr() :
     mPageSize = sysconf(_SC_PAGESIZE);
     if (mPageSize <= 0) {
         LOGE(mModule, "Failed to get page size, %d", mPageSize);
-        rc = SYS_ERROR;
+        mPageSize = 4096;
     }
 }
 
@@ -215,7 +215,9 @@ int32_t FSBufferMgr::import(Buffer *buf, int32_t fd, int64_t len)
 int32_t FSBufferMgr::flush(void *buf)
 {
     Buffer *buffer = findBuf(buf);
+
     msync(buffer->ptr, buffer->len, MS_SYNC);
+
     return flush(buffer->fd);
 }
 
