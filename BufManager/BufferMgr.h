@@ -1,27 +1,24 @@
 #ifndef _BUFFER_MANAGER_H__
 #define _BUFFER_MANAGER_H__
 
-#include "common.h"
+#include "Common.h"
 #include "BufferMgrIntf.h"
 
-namespace sirius {
+namespace voyager {
 
 class BufferMgr :
     public BufferMgrIntf,
     public noncopyable  {
 public:
-    int32_t allocate(void **buf, int32_t len) override;
-    int32_t allocate(void **buf, int32_t len, int32_t *fd) override;
-    int32_t clean(void *buf) override;
-    int32_t flush(void *buf) override;
-    int32_t import(void **buf, int32_t fd, int32_t len) override;
-    int32_t release(void *buf) override;
-    int32_t release_remove(void *buf) override;
-    void clear_all() override;
+    virtual int32_t alloc(void **buf, int64_t len) override;
+    virtual int32_t alloc(void **buf, int64_t len, int32_t *fd) override;
+    virtual int32_t import(void **buf, int32_t fd, int64_t len) override;
+    virtual int32_t flush(void *buf) override;
+    virtual int32_t flush(int32_t fd) override;
+    virtual int32_t release(void *buf) override;
+    virtual int32_t release(int32_t fd) override;
 
 public:
-    int32_t init() override;
-    int32_t deinit() override;
     BufferMgr();
     virtual ~BufferMgr();
 

@@ -1,14 +1,27 @@
 #include "BufferMgr.h"
 
-#ifdef ENABLE_ION_BUFFER
-
+#if defined(BUILD_LINUX_X86_64) || defined(BUILD_LINUX_X86)
+#include "FSBufferMgr.h"
+#else defined(BUILD_ANDROID_AP)
 #include "IonBufferMgr.h"
+#else
+#error Not supported this platform, supported BUILD_LINUX_X86_64, BUILD_LINUX_X86 or BUILD_ANDROID_AP.
+#endif
+
+#define CREATE_IMPL() \
+    ({ \
+#if defined(BUILD_LINUX_X86_64) || defined(BUILD_LINUX_X86) \
+        new IonBufferMgr(); \
+#else defined(BUILD_ANDROID_AP) \
+        new FSBufferMgr(); \
+#endif
+    })
 
 #define CONSTRUCT_IMPL() \
     ({ \
         int32_t __rc = NO_ERROR; \
         if (ISNULL(mMgr)) { \
-            mMgr = new IonBufferMgr(); \
+            CREATE_IMPL(); \
             if (ISNULL(mMgr)) { \
                 LOGE(MODULE_BUF_MANAGER, "Failed to create ion buffer manager."); \
                 __rc = NOT_INITED; \
@@ -16,10 +29,6 @@
         } \
         __rc; \
     })
-
-#else
-#error Not implemented buffer manager impl for this platform.
-#endif
 
 #define CHECK_VALID_IMPL() \
         ({ \
@@ -40,7 +49,8 @@
         __rc; \
     })
 
-namespace sirius {
+
+namespace voyager {
 
 BufferMgr::BufferMgr() :
     mMgr(NULL)
@@ -54,34 +64,22 @@ BufferMgr::~BufferMgr()
     }
 }
 
-int32_t BufferMgr::init()
+int32_t BufferMgr::alloc(void **buf, int64_t len)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->init() : rc;
+    return SUCCEED(rc) ? mMgr->alloc(buf, len) : rc;
 }
 
-int32_t BufferMgr::deinit()
+int32_t BufferMgr::alloc(void **buf, int64_t len, int32_t *fd)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->deinit() : rc;
+    return SUCCEED(rc) ? mMgr->alloc(buf, len, fd) : rc;
 }
 
-int32_t BufferMgr::allocate(void **buf, int32_t len)
+int32_t BufferMgr::import(void **buf, int32_t fd, int64_t len)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->allocate(buf, len) : rc;
-}
-
-int32_t BufferMgr::allocate(void **buf, int32_t len, int32_t *fd)
-{
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->allocate(buf, len, fd) : rc;
-}
-
-int32_t BufferMgr::clean(void *buf)
-{
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->clean(buf) : rc;
+    return SUCCEED(rc) ? mMgr->import(buf, fd, len) : rc;
 }
 
 int32_t BufferMgr::flush(void *buf)
@@ -90,10 +88,10 @@ int32_t BufferMgr::flush(void *buf)
     return SUCCEED(rc) ? mMgr->flush(buf) : rc;
 }
 
-int32_t BufferMgr::import(void **buf, int32_t fd, int32_t len)
+int32_t BufferMgr::flush(int32_t fd)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->import(buf, fd, len) : rc;
+    return SUCCEED(rc) ? mMgr->flush(fd) : rc;
 }
 
 int32_t BufferMgr::release(void *buf)
@@ -102,16 +100,10 @@ int32_t BufferMgr::release(void *buf)
     return SUCCEED(rc) ? mMgr->release(buf) : rc;
 }
 
-int32_t BufferMgr::release_remove(void *buf)
+int32_t BufferMgr::release(int32_t fd)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mMgr->release_remove(buf) : rc;
-}
-
-void BufferMgr::clear_all()
-{
-    CONSTRUCT_IMPL_ONCE();
-    mMgr->clear_all();
+    return SUCCEED(rc) ? mMgr->release(fd) : rc;
 }
 
 };
