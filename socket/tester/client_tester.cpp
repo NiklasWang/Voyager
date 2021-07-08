@@ -1,16 +1,14 @@
-#include "../common.h"
-#include "../configuration.h"
-#include "../client.h"
+#include "common.h"
+#include "client.h"
 
-#undef SERVER_SOCKET_PATH
-#define SERVER_SOCKET_PATH  "/tmp/"
+#define SOCKET_NAME         "tester_socket"
 #define SOCKET_DATA_MAX_LEN 256
-
-namespace voyager {
 
 #define GREETING_STR "Hello, voyager."
 #define GOODBYE_STR  "Bye, voyager."
 #define WRITE_SHARED_FD_STR "I'm client and I'm writting."
+
+namespace voyager {
 
 int _main_client_tester()
 {
@@ -21,8 +19,8 @@ int _main_client_tester()
     int32_t write_len = 0;
 
     if (SUCCEED(rc)) {
-        rc = connect_to_server(&sockfd);
-        if (!SUCCEED(rc)) {
+        rc = connect_to_server(&sockfd, SOCKET_NAME);
+        if (FAILED(rc)) {
             LOGE("Failed to connect server, %d", rc);
         }
     }
@@ -30,14 +28,14 @@ int _main_client_tester()
     if (SUCCEED(rc)) {
         strcpy(data, GREETING_STR);
         rc = sc_send_data(sockfd, data, strlen(data) + 1, CLIENT);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE("Failed to send data %s to server, %d", data, rc);
         }
     }
 
     if (SUCCEED(rc)) {
         rc = poll_server_fd_wait(sockfd, &sharedfd);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE("Failed to poll fd while sleeping, %d", rc);
         }
     }
@@ -45,7 +43,7 @@ int _main_client_tester()
     if (SUCCEED(rc)) {
         strcpy(data, GOODBYE_STR);
         rc = sc_send_data(sockfd, data, strlen(data) + 1, CLIENT);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE("Failed to send data %s to server, %d", data, rc);
         }
     }
@@ -59,7 +57,7 @@ int _main_client_tester()
         }
     }
 
-    if (SUCCEED(rc) || !SUCCEED(rc)) {
+    if (SUCCEED(rc) || FAILED(rc)) {
         if (sharedfd > 0) {
             close(sharedfd);
         }

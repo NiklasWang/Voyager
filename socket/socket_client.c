@@ -50,7 +50,7 @@ int32_t connect_to_server(int32_t *fd, const char *socketName)
         *fd = sockfd;
     }
 
-    if (!SUCCEED(rc)) {
+    if (FAILED(rc)) {
         if (sockfd != -1) {
             close(sockfd);
         }
@@ -82,7 +82,7 @@ int32_t poll_server_fd(int32_t serverfd, int32_t *sharedfd)
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLIN) {
             rc = sc_read_fd(serverfd, sharedfd, CLIENT);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(MODULE_SOCKET,
                     "Client failed to read server fd, %d", rc);
             }

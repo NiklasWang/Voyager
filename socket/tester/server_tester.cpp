@@ -1,10 +1,8 @@
-#include "../common.h"
-#include "../configuration.h"
-#include "../server.h"
+#include "common.h"
+#include "server.h"
 
-#define TEST_FILE_NAME "/tmp/voyager_shared_file"
-#undef SERVER_SOCKET_PATH
-#define SERVER_SOCKET_PATH "/tmp/"
+#define SOCKET_NAME    "tester_socket"
+#define TEST_FILE_NAME "/tmp/voyage/shared_file_tester"
 #define SOCKET_DATA_MAX_LEN 256
 
 namespace voyager {
@@ -31,7 +29,7 @@ int _main_server_tester()
     }
 
     if (SUCCEED(rc)) {
-        rc = start_server(&sockfd);
+        rc = start_server(&sockfd, SOCKET_NAME);
         if (!SUCCEED(rc)) {
             LOGE("Failed to start server, %d", rc);
         }

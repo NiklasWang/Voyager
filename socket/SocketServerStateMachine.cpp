@@ -151,7 +151,7 @@ int32_t SocketServerStateMachine::construct()
 
     if (SUCCEED(rc)) {
         rc = mThread.construct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct thread");
         }
     }
@@ -176,21 +176,21 @@ int32_t SocketServerStateMachine::destruct()
 
     if (SUCCEED(rc)) {
         rc = cancelWaitMsg();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to cancel wait msg, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         rc = cancelWaitConnect();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to cancel wait client, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         rc = mThread.destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to destruct thread, %d", rc);
         }
     }
@@ -216,7 +216,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
     switch (info->cmd) {
         case CMD_START_SERVER: {
             rc = start_server(&mServerFd, mSocketName);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(mModule, "Failed to start server, %d", rc);
             } else {
                 mOwnServer = true;
@@ -227,7 +227,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
             rc = poll_accept_wait(mServerFd, info->u.fd, &mCancelConnect);
             if (rc == USER_ABORTED) {
                 LOGI(mModule, "Cancelled to wait connection.");
-            } else if (!SUCCEED(rc)) {
+            } else if (FAILED(rc)) {
                 LOGE(mModule, "Failed to poll data while sleeping, %d", rc);
             }
         } break;
@@ -241,7 +241,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
             rc = poll_read_wait(fd, data, max_len, len, &mCancelMsg);
             if (rc == USER_ABORTED) {
                 LOGI(mModule, "Cancelled to read msg from client.");
-            } else if (!SUCCEED(rc)) {
+            } else if (FAILED(rc)) {
                 LOGE(mModule, "Failed to poll data while sleeping, %d", rc);
             }
             mWaitingMsg = false;
@@ -251,7 +251,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
             int32_t len = info->u.msg->len;
             int32_t fd   = info->u.msg->fd;
             rc = sc_send_data(fd, data, len);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(mModule, "Failed to send data, %d", rc);
             }
         } break;
@@ -261,7 +261,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
         case CMD_SEND_FD: {
             int32_t fd = *info->u.fd;
             rc = sc_send_fd(mClientFd, fd);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(mModule, "Failed to send fd %d to client", fd);
             }
         } break;
@@ -313,7 +313,7 @@ int32_t SocketServerStateMachine::executeOnThread(
         },
         task
     );
-    if (!SUCCEED(rc)) {
+    if (FAILED(rc)) {
         LOGE(mModule, "Failed to %s on status %s, %d",
             cmdName(task->cmd), stateName(mStatus), rc);
     }
@@ -465,7 +465,7 @@ int32_t SocketServerStateMachine::procCmdAcceptedClientState(
             if (SUCCEED(rc)) {
                 info.sync.wait();
                 rc = info.rc;
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to receive msg from client.");
                 }
             }
@@ -480,7 +480,7 @@ int32_t SocketServerStateMachine::procCmdAcceptedClientState(
             if (SUCCEED(rc)) {
                 info.sync.wait();
                 rc = info.rc;
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to send msg to client.");
                 }
             }
@@ -496,7 +496,7 @@ int32_t SocketServerStateMachine::procCmdAcceptedClientState(
             if (SUCCEED(rc)) {
                 info.sync.wait();
                 rc = info.rc;
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to receive fd from client.");
                 }
             }
@@ -512,7 +512,7 @@ int32_t SocketServerStateMachine::procCmdAcceptedClientState(
             if (SUCCEED(rc)) {
                 info.sync.wait();
                 rc = info.rc;
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to send fd to client.");
                 }
             }
@@ -582,7 +582,7 @@ SocketServerStateMachine &SocketServerStateMachine::operator=(
     mClientFd = -1;
     mSocketName = rhs.mSocketName;
 
-    if (!SUCCEED(construct())) {
+    if (FAILED(construct())) {
         LOGE(mModule, "Failed to construct while copy construction");
     }
 

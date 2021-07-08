@@ -1,7 +1,6 @@
 #ifndef _VOYAGER_SERVER_H_
 #define _VOYAGER_SERVER_H_
 
-#include "configuration.h"
 #include "server_client_common.h"
 
 namespace voyager {

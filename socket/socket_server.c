@@ -18,17 +18,14 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        std::string path = SERVER_SOCKET_PATH;
-        path += "/";
-        path += PROJNAME;
-        rc = access(path.c_str(), R_OK | W_OK);
+        rc = access(SERVER_SOCKET_PATH, R_OK | W_OK);
         if (FAILED(rc)) {
             LOGI(MODULE_SOCKET, "Socket dir %s does not exist, create it.", DUMP_PATH);
-            unlink(path.c_str());
-            rc = mkdir(path.c_str(), 0755);
+            unlink(SERVER_SOCKET_PATH);
+            rc = mkdir(SERVER_SOCKET_PATH, 0755);
             if (FAILED(rc)) {
                 LOGE(mModule, "mkdir %s failed, %s.",
-                    path.c_str(), strerror(errno));
+                    SERVER_SOCKET_PATH, strerror(errno));
                 rc = UNKNOWN_ERROR;
             }
         }
@@ -54,7 +51,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
             "Connection socket name %s", server_addr.sun_path);
         if (!access(server_addr.sun_path, F_OK)) {
             rc = unlink(server_addr.sun_path);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(MODULE_SOCKET, "Unlink failed, %s", strerror(errno));
                 rc = SYS_ERROR;
             }
@@ -66,7 +63,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         option = 1;
         rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
             &option, sizeof(option));
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(MODULE_SOCKET,
                 "Can't set SO_REUSEADDR for server socket, %s", strerror(errno));
             rc = SYS_ERROR;
@@ -75,7 +72,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
 
     if (SUCCEED(rc)) {
         rc = bind(sockfd, (struct sockaddr *)&server_addr, addr_len);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(MODULE_SOCKET,
                 "Failed to bind for server socket, %s", strerror(errno));
             rc = SYS_ERROR;
@@ -85,7 +82,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     if (SUCCEED(rc)) {
         struct stat status;
         rc = stat(server_addr.sun_path, &status);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(MODULE_SOCKET, "Failed to stat, %s", strerror(errno));
             rc = SYS_ERROR;
         } else {
@@ -95,7 +92,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
 
     if (SUCCEED(rc)) {
         rc = chmod(server_addr.sun_path, permission | S_IROTH | S_IWOTH);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(MODULE_SOCKET,"Failed to add permission, %s",
                 strerror(errno));
             rc = SYS_ERROR;
@@ -104,7 +101,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
 
     if (SUCCEED(rc)) {
         rc = listen(sockfd, MAX_CLIENT_ALLOWED);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(MODULE_SOCKET, "Failed to listen, %s", strerror(errno));
             rc = SYS_ERROR;
         } else {
@@ -114,7 +111,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         }
     }
 
-    if (!SUCCEED(rc)) {
+    if (FAILED(rc)) {
         if (sockfd != -1) {
             close(sockfd);
         }
@@ -191,7 +188,7 @@ int32_t poll_read(int32_t clientfd,
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLIN) {
             rc = sc_read_data(clientfd, dat, max_len, read_len);
-            if (!SUCCEED(rc)) {
+            if (FAILED(rc)) {
                 LOGE(MODULE_SOCKET,
                     "Server failed to read client data, %d", rc);
             }
