@@ -1,7 +1,7 @@
 #include "common.h"
 #include "server_client_common.h"
 
-namespace sirius {
+namespace voyager {
 
 #include <sys/socket.h>
 

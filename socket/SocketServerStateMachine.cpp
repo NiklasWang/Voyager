@@ -2,7 +2,7 @@
 #include "socket_server.h"
 #include "configuration.h"
 
-namespace sirius {
+namespace voyager {
 
 
 int32_t SocketServerStateMachine::startServer()

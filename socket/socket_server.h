@@ -1,10 +1,10 @@
-#ifndef _SIRIUS_SERVER_H_
-#define _SIRIUS_SERVER_H_
+#ifndef _VOYAGER_SERVER_H_
+#define _VOYAGER_SERVER_H_
 
 #include "configuration.h"
 #include "server_client_common.h"
 
-namespace sirius {
+namespace voyager {
 
 int32_t start_server(int32_t *socketfd, const char *socketName = SERVER_SOCKET_NAME);
 

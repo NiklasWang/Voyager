@@ -5,10 +5,10 @@
 #undef SERVER_SOCKET_PATH
 #define SERVER_SOCKET_PATH "/tmp/"
 
-namespace sirius {
+namespace voyager {
 
-#define GREETING_STR "Hello, sirius."
-#define GOODBYE_STR  "Bye, sirius."
+#define GREETING_STR "Hello, voyager."
+#define GOODBYE_STR  "Bye, voyager."
 #define WRITE_SHARED_FD_STR "I'm client and I'm writting."
 
 int _main_client_tester()
@@ -75,6 +75,6 @@ int _main_client_tester()
 
 int main()
 {
-    return sirius::_main_client_tester();
+    return voyager::_main_client_tester();
 }
 

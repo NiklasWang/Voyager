@@ -1,5 +1,5 @@
-#ifndef _SIRIUS_SOCKET_CLIENT_STATE_MACHINE__
-#define _SIRIUS_SOCKET_CLIENT_STATE_MACHINE__
+#ifndef _VOYAGER_SOCKET_CLIENT_STATE_MACHINE__
+#define _VOYAGER_SOCKET_CLIENT_STATE_MACHINE__
 
 #include "common.h"
 #include "SyncType.h"
@@ -7,7 +7,7 @@
 #include "configuration.h"
 #include "RWLock.h"
 
-namespace sirius {
+namespace voyager {
 
 class SocketClientStateMachine :
     public noncopyable {

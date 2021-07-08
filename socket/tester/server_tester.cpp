@@ -2,11 +2,11 @@
 #include "../configuration.h"
 #include "../server.h"
 
-#define TEST_FILE_NAME "/tmp/sirius_shared_file"
+#define TEST_FILE_NAME "/tmp/voyager_shared_file"
 #undef SERVER_SOCKET_PATH
 #define SERVER_SOCKET_PATH "/tmp/"
 
-namespace sirius {
+namespace voyager {
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -85,7 +85,7 @@ int _main_server_tester()
 
 int main()
 {
-    return sirius::_main_server_tester();
+    return voyager::_main_server_tester();
 }
 
 

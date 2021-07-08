@@ -1,7 +1,7 @@
-#ifndef SIRIUS_SERVER_CLIENT_COMMON_H_
-#define SIRIUS_SERVER_CLIENT_COMMON_H_
+#ifndef VOYAGER_SERVER_CLIENT_COMMON_H_
+#define VOYAGER_SERVER_CLIENT_COMMON_H_
 
-namespace sirius {
+namespace voyager {
 
 #include <stdint.h>
 
