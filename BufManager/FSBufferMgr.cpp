@@ -273,7 +273,7 @@ int32_t FSBufferMgr::release(void *buf)
 
     if (SUCCEED(rc)) {
         rc = release(buffer);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to release buf, %d", rc);
         }
     }

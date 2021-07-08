@@ -179,7 +179,7 @@ int32_t IonBufferMgrImpl::import(Buffer *buf, int32_t fd, int64_t len)
 
     if (SUCCEED(rc)) {
         rc = kIonHelper.ion_import_func(kIonFd, fd, &handle);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to import ion memory with fd %d", fd);
         }
     }
@@ -304,7 +304,7 @@ int32_t IonBufferMgrImpl::release(void *buf)
 
     if (SUCCEED(rc)) {
         rc = release(buffer);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to release buf, %d", rc);
         }
     }
@@ -337,7 +337,7 @@ int32_t IonBufferMgrImpl::release(Buffer *buf)
 
     if (SUCCEED(rc)) {
         rc = kIonHelper.ion_free_func(kIonFd, buf->handler);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to free ion mem, %d", rc);
         }
     }
