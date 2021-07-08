@@ -18,7 +18,7 @@ int32_t connect_to_server(int32_t *fd, const char *socketName)
     if (SUCCEED(rc)) {
         sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sockfd < 0) {
-            LOGE(MODULE_SOCKET_CLIENT,
+            LOGE(MODULE_SOCKET,
                 "Failed to open listening socket for server, %s",
                 strerror(errno));
             rc = SYS_ERROR;
@@ -37,11 +37,11 @@ int32_t connect_to_server(int32_t *fd, const char *socketName)
         rc = connect(sockfd, (struct sockaddr *)&server_addr, addr_len);
         if (rc != 0) {
             rc = NOT_READY;
-            LOGD(MODULE_SOCKET_CLIENT, "Client connect to server "
+            LOGD(MODULE_SOCKET, "Client connect to server "
                 "socket %s failed, %s, may not started",
                 server_addr.sun_path, strerror(errno));
         } else {
-            LOGD(MODULE_SOCKET_CLIENT, "Client connected to server "
+            LOGD(MODULE_SOCKET, "Client connected to server "
                 "socket", server_addr.sun_path);
         }
     }
@@ -68,22 +68,22 @@ int32_t poll_server_fd(int32_t serverfd, int32_t *sharedfd)
 
     rc = poll(&connected_pollfd, 1, CLIENT_POLL_DATA_TIMEOUT);
     if (rc == -1) {
-        LOGE(MODULE_SOCKET_CLIENT, "Client poll data error, %s", strerror(errno));
+        LOGE(MODULE_SOCKET, "Client poll data error, %s", strerror(errno));
         rc = SYS_ERROR;
     } else if (rc == 0) {
         // Client poll data timeout, check if need to exit outside
         rc = TIMEDOUT;
     } else {
         if (connected_pollfd.revents & POLLHUP) {
-            LOGE(MODULE_SOCKET_CLIENT, "Client poll data return, POLLHUP");
+            LOGE(MODULE_SOCKET, "Client poll data return, POLLHUP");
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLPRI) {
-            LOGE(MODULE_SOCKET_CLIENT, "Client poll data return, POLLPRI");
+            LOGE(MODULE_SOCKET, "Client poll data return, POLLPRI");
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLIN) {
             rc = sc_read_fd(serverfd, sharedfd, CLIENT);
             if (!SUCCEED(rc)) {
-                LOGE(MODULE_SOCKET_CLIENT,
+                LOGE(MODULE_SOCKET,
                     "Client failed to read server fd, %d", rc);
             }
         }
@@ -102,11 +102,11 @@ int32_t poll_server_fd_wait(int32_t serverfd,
         if (SUCCEED(rc)) {
             break;
         } else if (rc != TIMEDOUT) {
-            LOGE(MODULE_SOCKET_CLIENT, "Failed to poll data from client, %d", rc);
+            LOGE(MODULE_SOCKET, "Failed to poll data from client, %d", rc);
             break;
         }
         if (*cancel) {
-            LOGI(MODULE_SOCKET_SERVER, "Cancelled to wait server fd");
+            LOGI(MODULE_SOCKET, "Cancelled to wait server fd");
             break;
         }
     } while (true);

@@ -1,9 +1,9 @@
+#include <sys/socket.h>
+
 #include "common.h"
 #include "server_client_common.h"
 
 namespace voyager {
-
-#include <sys/socket.h>
 
 const char *sc_type_str[] = {
     [SERVER] = "server",

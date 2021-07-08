@@ -1,16 +1,19 @@
 #ifndef _VOYAGER_SOCKET_SERVER_STATE_MACHINE__
 #define _VOYAGER_SOCKET_SERVER_STATE_MACHINE__
 
+#include <string>
+
 #include "common.h"
-#include "configuration.h"
 #include "SyncType.h"
 #include "ThreadT.h"
 
 namespace voyager {
 
 class SocketServerStateMachine :
+    public Identifier,
     public noncopyable {
 public:
+
     int32_t startServer();
     int32_t waitForConnect();
     int32_t waitForConnect(int32_t *clientfd);
@@ -21,9 +24,9 @@ public:
     int32_t receiveFd(int32_t *fd);
     int32_t sendFd(int32_t fd);
 
-    bool connected();
+    bool    connected();
     int32_t cancelWaitConnect();
-    bool waitingMsg();
+    bool    waitingMsg();
     int32_t cancelWaitMsg();
     int32_t setClientFd(int32_t fd);
 
@@ -84,7 +87,7 @@ private:
     void updateToNewStatus(status state);
 
 public:
-    SocketServerStateMachine(const char *socketName = SERVER_SOCKET_NAME);
+    SocketServerStateMachine(const char *socketName);
     virtual ~SocketServerStateMachine();
     SocketServerStateMachine(const SocketServerStateMachine &rhs);
     SocketServerStateMachine &operator=(const SocketServerStateMachine &rhs);
@@ -104,8 +107,7 @@ private:
     bool    mWaitingMsg;
     bool    mCancelConnect;
     bool    mCancelMsg;
-    ModuleType  mModule;
-    const char *mSocketName;
+    std::string       mSocketName;
     ThreadT<cmd_info> mThread;
 
 private:

@@ -18,9 +18,26 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
+        std::string path = SERVER_SOCKET_PATH;
+        path += "/";
+        path += PROJNAME;
+        rc = access(path.c_str(), R_OK | W_OK);
+        if (FAILED(rc)) {
+            LOGI(MODULE_SOCKET, "Socket dir %s does not exist, create it.", DUMP_PATH);
+            unlink(path.c_str());
+            rc = mkdir(path.c_str(), 0755);
+            if (FAILED(rc)) {
+                LOGE(mModule, "mkdir %s failed, %s.",
+                    path.c_str(), strerror(errno));
+                rc = UNKNOWN_ERROR;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
         sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sockfd < 0) {
-            LOGE(MODULE_SOCKET_SERVER,
+            LOGE(MODULE_SOCKET,
                 "Failed to open listening socket for server, %s",
                 strerror(errno));
             rc = SYS_ERROR;
@@ -33,12 +50,12 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         strcpy(server_addr.sun_path, SERVER_SOCKET_PATH);
         strcat(server_addr.sun_path, socketName);
         addr_len = strlen(server_addr.sun_path) + sizeof(server_addr.sun_family);
-        LOGD(MODULE_SOCKET_SERVER,
+        LOGD(MODULE_SOCKET,
             "Connection socket name %s", server_addr.sun_path);
         if (!access(server_addr.sun_path, F_OK)) {
             rc = unlink(server_addr.sun_path);
             if (!SUCCEED(rc)) {
-                LOGE(MODULE_SOCKET_SERVER, "Unlink failed, %s", strerror(errno));
+                LOGE(MODULE_SOCKET, "Unlink failed, %s", strerror(errno));
                 rc = SYS_ERROR;
             }
         }
@@ -50,7 +67,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
             &option, sizeof(option));
         if (!SUCCEED(rc)) {
-            LOGE(MODULE_SOCKET_SERVER,
+            LOGE(MODULE_SOCKET,
                 "Can't set SO_REUSEADDR for server socket, %s", strerror(errno));
             rc = SYS_ERROR;
         }
@@ -59,7 +76,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     if (SUCCEED(rc)) {
         rc = bind(sockfd, (struct sockaddr *)&server_addr, addr_len);
         if (!SUCCEED(rc)) {
-            LOGE(MODULE_SOCKET_SERVER,
+            LOGE(MODULE_SOCKET,
                 "Failed to bind for server socket, %s", strerror(errno));
             rc = SYS_ERROR;
         }
@@ -69,7 +86,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         struct stat status;
         rc = stat(server_addr.sun_path, &status);
         if (!SUCCEED(rc)) {
-            LOGE(MODULE_SOCKET_SERVER, "Failed to stat, %s", strerror(errno));
+            LOGE(MODULE_SOCKET, "Failed to stat, %s", strerror(errno));
             rc = SYS_ERROR;
         } else {
             permission = status.st_mode;
@@ -79,7 +96,7 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     if (SUCCEED(rc)) {
         rc = chmod(server_addr.sun_path, permission | S_IROTH | S_IWOTH);
         if (!SUCCEED(rc)) {
-            LOGE(MODULE_SOCKET_SERVER,"Failed to add permission, %s",
+            LOGE(MODULE_SOCKET,"Failed to add permission, %s",
                 strerror(errno));
             rc = SYS_ERROR;
         }
@@ -88,10 +105,10 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
     if (SUCCEED(rc)) {
         rc = listen(sockfd, MAX_CLIENT_ALLOWED);
         if (!SUCCEED(rc)) {
-            LOGE(MODULE_SOCKET_SERVER, "Failed to listen, %s", strerror(errno));
+            LOGE(MODULE_SOCKET, "Failed to listen, %s", strerror(errno));
             rc = SYS_ERROR;
         } else {
-            LOGD(MODULE_SOCKET_SERVER,
+            LOGD(MODULE_SOCKET,
                 "Listen client connection on fd %d", sockfd);
             *socketfd = sockfd;
         }
@@ -120,7 +137,7 @@ int32_t poll_accept(int32_t sockfd, int32_t *clientfd)
     connected_pollfd.events = POLLIN | POLLPRI;
     rc = poll(&connected_pollfd, 1, SERVER_PULL_CLIENT_TIMEOUT);
     if (rc == -1) {
-        LOGE(MODULE_SOCKET_SERVER,
+        LOGE(MODULE_SOCKET,
             "Server poll client error, %s", strerror(errno));
         rc = SYS_ERROR;
     } else if (rc == 0) {
@@ -128,19 +145,19 @@ int32_t poll_accept(int32_t sockfd, int32_t *clientfd)
         rc = TIMEDOUT;
     } else {
         if (connected_pollfd.revents & POLLPRI) {
-            LOGE(MODULE_SOCKET_SERVER, "Server poll client return, POLLPRI");
+            LOGE(MODULE_SOCKET, "Server poll client return, POLLPRI");
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLIN) {
             client_addr_len = sizeof(client_addr);
             connected_client_fd = accept(sockfd,
                 (struct sockaddr *)&client_addr, &client_addr_len);
             if (connected_client_fd == -1) {
-                LOGE(MODULE_SOCKET_SERVER,
+                LOGE(MODULE_SOCKET,
                     "Client connect failed to server poll, %s", strerror(errno));
                 rc = SYS_ERROR;
             } else {
                 *clientfd = connected_client_fd;
-                LOGI(MODULE_SOCKET_SERVER,
+                LOGI(MODULE_SOCKET,
                     "Client connected to server, fd %d", *clientfd);
                 rc = NO_ERROR;
             }
@@ -160,22 +177,22 @@ int32_t poll_read(int32_t clientfd,
 
     rc = poll(&connected_pollfd, 1, SERVER_POLL_DATA_TIMEOUT);
     if (rc == -1) {
-        LOGE(MODULE_SOCKET_SERVER,
+        LOGE(MODULE_SOCKET,
             "Server poll data error, %s", strerror(errno));
     } else if (rc == 0) {
         // Server poll data timeout, check if need to exit outside
         rc = TIMEDOUT;
     } else {
         if (connected_pollfd.revents & POLLHUP) {
-            LOGE(MODULE_SOCKET_SERVER, "Server poll data return, POLLHUP");
+            LOGE(MODULE_SOCKET, "Server poll data return, POLLHUP");
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLPRI) {
-            LOGE(MODULE_SOCKET_SERVER, "Server poll data return, POLLPRI");
+            LOGE(MODULE_SOCKET, "Server poll data return, POLLPRI");
             rc = UNKNOWN_ERROR;
         } else if (connected_pollfd.revents & POLLIN) {
             rc = sc_read_data(clientfd, dat, max_len, read_len);
             if (!SUCCEED(rc)) {
-                LOGE(MODULE_SOCKET_SERVER,
+                LOGE(MODULE_SOCKET,
                     "Server failed to read client data, %d", rc);
             }
         }
@@ -217,14 +234,14 @@ int32_t poll_accept_wait(int32_t sockfd,
     do {
         rc = poll_accept(sockfd, clientfd);
         if (SUCCEED(rc)) {
-            LOGI(MODULE_SOCKET_SERVER, "Accepted client with fd %d", *clientfd);
+            LOGI(MODULE_SOCKET, "Accepted client with fd %d", *clientfd);
             break;
         } else if (rc != TIMEDOUT) {
-            LOGE(MODULE_SOCKET_SERVER, "Failed to accept client, %d", rc);
+            LOGE(MODULE_SOCKET, "Failed to accept client, %d", rc);
             break;
         }
         if (*cancel) {
-            LOGI(MODULE_SOCKET_SERVER, "Cancelled to wait for connection");
+            LOGI(MODULE_SOCKET, "Cancelled to wait for connection");
             rc = USER_ABORTED;
             break;
         }
@@ -240,7 +257,7 @@ int32_t poll_read_wait(int32_t clientfd,
 
     do {
         if (*cancel) {
-            LOGI(MODULE_SOCKET_SERVER, "Cancelled to wait for message");
+            LOGI(MODULE_SOCKET, "Cancelled to wait for message");
             rc = USER_ABORTED;
             break;
         }
@@ -248,7 +265,7 @@ int32_t poll_read_wait(int32_t clientfd,
         if (SUCCEED(rc)) {
             break;
         } else if (rc != TIMEDOUT) {
-            LOGE(MODULE_SOCKET_SERVER,
+            LOGE(MODULE_SOCKET,
                 "Failed to poll data from client, %d", rc);
             break;
         }

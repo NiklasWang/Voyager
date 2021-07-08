@@ -55,11 +55,11 @@ int32_t FSBufferMgr::allocate(Buffer *buf, int64_t len)
     if (SUCCEED(rc)) {
         fsName  = FS_BUFFER_PATH;
         fsName += "/";
-        fsName += PROJNAME VERSION;
+        fsName += PROJNAME;
         rc = access(fsName.c_str(), R_OK | W_OK);
         if (FAILED(rc)) {
             LOGI(mModule, "FS file dir %s does not exist, create it.", DUMP_PATH);
-            unlink(DUMP_PATH);
+            unlink(fsName.c_str());
             rc = mkdir(fsName.c_str(), 0755);
             if (FAILED(rc)) {
                 LOGE(mModule, "mkdir %s failed, %s.",
@@ -88,6 +88,7 @@ int32_t FSBufferMgr::allocate(Buffer *buf, int64_t len)
         fsName += std::to_string(len);
         fsName += "_";
         fsName += TimeUtils::getDateTime();
+        fsName += ".share";
     }
 
     if (SUCCEED(rc)) {

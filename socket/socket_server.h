@@ -6,7 +6,7 @@
 
 namespace voyager {
 
-int32_t start_server(int32_t *socketfd, const char *socketName = SERVER_SOCKET_NAME);
+int32_t start_server(int32_t *socketfd, const char *socketName);
 
 int32_t poll_accept(int32_t sockfd, int32_t *clientfd);
 

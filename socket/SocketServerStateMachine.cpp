@@ -121,6 +121,7 @@ int32_t SocketServerStateMachine::cancelWaitMsg()
 
 SocketServerStateMachine::SocketServerStateMachine(
     const char *socketName) :
+    Identifier(MODULE_SOCKET, "SocketServerStateMachine", "1.0.0"),
     mConstructed(false),
     mOwnServer(false),
     mServerFd(-1),
@@ -128,7 +129,6 @@ SocketServerStateMachine::SocketServerStateMachine(
     mStatus(STATUS_UNINITED),
     mWaitingMsg(false),
     mCancelConnect(false),
-    mModule(MODULE_SOCKET_SERVER_SM),
     mSocketName(socketName),
     mThread(getModuleName(mModule))
 {

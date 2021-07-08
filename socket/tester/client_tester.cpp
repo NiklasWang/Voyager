@@ -3,7 +3,8 @@
 #include "../client.h"
 
 #undef SERVER_SOCKET_PATH
-#define SERVER_SOCKET_PATH "/tmp/"
+#define SERVER_SOCKET_PATH  "/tmp/"
+#define SOCKET_DATA_MAX_LEN 256
 
 namespace voyager {
 

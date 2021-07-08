@@ -5,6 +5,7 @@
 #define TEST_FILE_NAME "/tmp/voyager_shared_file"
 #undef SERVER_SOCKET_PATH
 #define SERVER_SOCKET_PATH "/tmp/"
+#define SOCKET_DATA_MAX_LEN 256
 
 namespace voyager {
 

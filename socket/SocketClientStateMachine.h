@@ -1,24 +1,27 @@
 #ifndef _VOYAGER_SOCKET_CLIENT_STATE_MACHINE__
 #define _VOYAGER_SOCKET_CLIENT_STATE_MACHINE__
 
+#include <string>
+
 #include "common.h"
 #include "SyncType.h"
 #include "ThreadT.h"
-#include "configuration.h"
 #include "RWLock.h"
 
 namespace voyager {
 
 class SocketClientStateMachine :
+    public Identifier,
     public noncopyable {
 public:
+
     int32_t connectServer();
     int32_t receiveMsg(char *data, int32_t maxlen);
     int32_t sendMsg(const char *data, int32_t len);
     int32_t receiveFd(int32_t *fd);
     int32_t sendFd(int32_t fd);
     int32_t cancelWaitMsg();
-    bool connected();
+    bool    connected();
 
 private:
     enum cmd_type {
@@ -74,7 +77,7 @@ private:
     void updateToNewStatus(status state);
 
 public:
-    SocketClientStateMachine(const char *socketName = SERVER_SOCKET_NAME);
+    SocketClientStateMachine(const char *socketName);
     virtual ~SocketClientStateMachine();
     int32_t construct();
     int32_t destruct();
@@ -86,10 +89,9 @@ private:
     bool        mConstructed;
     int32_t     mServerFd;
     status      mStatus;
-    ModuleType  mModule;
     bool        mCancelWait;
-    const char *mSocketName;
-    pthread_mutex_t  mMsgLock;
+    std::string mSocketName;
+    pthread_mutex_t   mMsgLock;
     ThreadT<cmd_info> mThread;
 
 private:

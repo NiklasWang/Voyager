@@ -83,10 +83,10 @@ bool SocketClientStateMachine::connected()
 
 SocketClientStateMachine::SocketClientStateMachine(
     const char *socketName) :
+    Identifier(MODULE_SOCKET, "SocketClientStateMachine", "1.0.0"),
     mConstructed(false),
     mServerFd(-1),
     mStatus(STATUS_UNINITED),
-    mModule(MODULE_SOCKET_CLIENT_SM),
     mCancelWait(false),
     mSocketName(socketName),
     mThread(getModuleName(mModule))
