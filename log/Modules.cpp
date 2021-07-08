@@ -6,6 +6,7 @@ namespace voyager {
 
 static const char *const gModuleName[] = {
     [MODULE_OTHERS]          = "others",
+    [MODULE_SOCKET]          = "socket",
     [MODULE_CLIENT]          = "client",
     [MODULE_SERVER]          = "server",
     [MODULE_CLIENT_IMPL]     = "client impl",
@@ -21,6 +22,7 @@ static const char *const gModuleName[] = {
 
 static const char *const gModuleShortName[] = {
     [MODULE_OTHERS]          = "[OTHER]",
+    [MODULE_SOCKET]          = "[  SOK]",
     [MODULE_CLIENT]          = "[CLIEN]",
     [MODULE_SERVER]          = "[SERVE]",
     [MODULE_CLIENT_IMPL]     = "[CIMPL]",

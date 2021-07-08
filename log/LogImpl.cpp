@@ -36,17 +36,18 @@ bool gLastSavingLogStatus = gSavingLog;
 int8_t gDebugController[][LOG_TYPE_MAX_INVALID + 1] = {
     // NONE,  DBG,  INF, WARN,  ERR, FATA, INVA
     {     0,    0,    1,    1,    1,    1,    0}, // MODULE_OTHERS
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT_IMPL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER_IMPL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_CLIENT_CORE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_SERVER_CORE,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_OVERALL_CONTROL,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_BUFFER_MANAGER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_ION_HELPER,
-    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_FS_HELPER,
-    {     1,    1,    1,    1,    1,    1,    1}, // MODULE_MAX_INVALID,
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_SOCKET
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_CLIENT
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_SERVER
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_CLIENT_IMPL
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_SERVER_IMPL
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_CLIENT_CORE
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_SERVER_CORE
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_OVERALL_CONTRO
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_BUFFER_MANAGER
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_ION_HELPER
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_FS_HELPER
+    {     1,    1,    1,    1,    1,    1,    1}, // MODULE_MAX_INVALID
 };
 
 static const char *const gLogType[] = {

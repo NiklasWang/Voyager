@@ -7,6 +7,7 @@ namespace voyager {
 
 enum ModuleType {
     MODULE_OTHERS,
+    MODULE_SOCKET,
     MODULE_CLIENT,
     MODULE_SERVER,
     MODULE_CLIENT_IMPL,
