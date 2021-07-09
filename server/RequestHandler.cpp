@@ -3,7 +3,7 @@
 #include "RequestHandler.h"
 #include "MemMgmt.h"
 
-namespace sirius {
+namespace voyager {
 
 RequestType RequestHandler::getType()
 {

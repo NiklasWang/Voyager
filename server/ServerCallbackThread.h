@@ -2,9 +2,9 @@
 #define _SERVER_CALLBACK_THREAD_H_
 
 #include "common.h"
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 
-namespace sirius {
+namespace voyager {
 
 class ThreadPoolEx;
 

@@ -1,7 +1,7 @@
 #include "ServerCallbackThread.h"
 #include "ThreadPoolEx.h"
 
-namespace sirius {
+namespace voyager {
 
 int32_t ServerCallbackThread::send(RequestType type, int32_t id, void *head, void *dat)
 {

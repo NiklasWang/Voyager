@@ -1,9 +1,9 @@
 #ifndef _REQUEST_HANDLER_INTF_H_
 #define _REQUEST_HANDLER_INTF_H_
 
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 
-namespace sirius {
+namespace voyager {
 
 class RequestHandlerIntf {
 public:

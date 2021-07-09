@@ -1,26 +1,26 @@
-#include "SiriusServerImpl.h"
-#include "SiriusCore.h"
+#include "ServerImpl.h"
+#include "Core.h"
 #include "ThreadPoolEx.h"
 
-namespace sirius {
+namespace voyager {
 
-SiriusServerImpl::SiriusServerImpl() :
+ServerImpl::ServerImpl() :
     mConstructed(false),
-    mModule(MODULE_SIRIUS_IMPL),
+    mModule(MODULE_VOYAGER_IMPL),
     mTaskCnt(0),
     mCore(NULL)
 {
     LOGI(mModule, "%s %s initializing...", PROJNAME, VERSION);
 }
 
-SiriusServerImpl::~SiriusServerImpl()
+ServerImpl::~ServerImpl()
 {
     if (mConstructed) {
         destruct();
     }
 }
 
-int32_t SiriusServerImpl::construct()
+int32_t ServerImpl::construct()
 {
     int32_t rc = NO_ERROR;
 
@@ -29,7 +29,7 @@ int32_t SiriusServerImpl::construct()
     }
 
     if (SUCCEED(rc)) {
-        mCore = new SiriusCore();
+        mCore = new Core();
         if (ISNULL(mCore)) {
             LOGE(mModule, "Failed to create core");
             rc = UNKNOWN_ERROR;
@@ -53,13 +53,13 @@ int32_t SiriusServerImpl::construct()
 
     if (SUCCEED(rc)) {
         mConstructed = true;
-        LOGD(mModule, "Sirius impl constructed");
+        LOGD(mModule, " impl constructed");
     }
 
     return RETURNIGNORE(rc, ALREADY_EXISTS);
 }
 
-int32_t SiriusServerImpl::destruct()
+int32_t ServerImpl::destruct()
 {
     int32_t rc = NO_ERROR;
 
@@ -87,31 +87,31 @@ int32_t SiriusServerImpl::destruct()
 
     if (!SUCCEED(rc)) {
         mConstructed = true;
-        LOGE(mModule, "Failed to destruct Sirius impl");
+        LOGE(mModule, "Failed to destruct  impl");
     } else {
-        LOGD(mModule, "Sirius impl destructed");
+        LOGD(mModule, " impl destructed");
     }
 
     return RETURNIGNORE(rc, NOT_INITED);
 
 }
 
-const char * const SiriusServerImpl::TaskBase::kTaskString[] = {
-    [SiriusServerImpl::TYPE_REQUEST]     = "request",
-    [SiriusServerImpl::TYPE_ABORT]       = "abort",
-    [SiriusServerImpl::TYPE_ENQUEUE]     = "enqueue buf",
-    [SiriusServerImpl::TYPE_SET_CB]      = "set callback",
-    [SiriusServerImpl::TYPE_MAX_INVALID] = "max invalid",
+const char * const ServerImpl::TaskBase::kTaskString[] = {
+    [ServerImpl::TYPE_REQUEST]     = "request",
+    [ServerImpl::TYPE_ABORT]       = "abort",
+    [ServerImpl::TYPE_ENQUEUE]     = "enqueue buf",
+    [ServerImpl::TYPE_SET_CB]      = "set callback",
+    [ServerImpl::TYPE_MAX_INVALID] = "max invalid",
 };
 
-const char *SiriusServerImpl::TaskBase::whoamI()
+const char *ServerImpl::TaskBase::whoamI()
 {
     return kTaskString[
         (type < 0 || type > TYPE_MAX_INVALID) ?
         TYPE_MAX_INVALID : type];
 }
 
-int32_t SiriusServerImpl::processTask(TaskBase *task)
+int32_t ServerImpl::processTask(TaskBase *task)
 {
     assert(!ISNULL(dat));
     uint32_t rc = NO_ERROR;
@@ -143,7 +143,7 @@ int32_t SiriusServerImpl::processTask(TaskBase *task)
     return rc;
 }
 
-int32_t SiriusServerImpl::taskDone(TaskBase *task, int32_t processRC)
+int32_t ServerImpl::taskDone(TaskBase *task, int32_t processRC)
 {
     int32_t rc = NO_ERROR;
     SyncType *sync = NOTNULL(task) ? task->getSync() : NULL;
@@ -163,7 +163,7 @@ int32_t SiriusServerImpl::taskDone(TaskBase *task, int32_t processRC)
 }
 
 template <typename T, sync_type sync>
-int32_t SiriusServerImpl::pushToThread(TaskType type, void *value)
+int32_t ServerImpl::pushToThread(TaskType type, void *value)
 {
     int32_t rc = NO_ERROR;
     Task<T> *task = NULL;
@@ -209,12 +209,12 @@ int32_t SiriusServerImpl::pushToThread(TaskType type, void *value)
     return rc;
 }
 
-const SiriusServerImpl::PushToThreadFunc
-    SiriusServerImpl::gAddThreadTaskFunc[] = {
-    [SiriusServerImpl::TYPE_REQUEST] = &SiriusServerImpl::pushToThread<RequestType, SYNC_TYPE>,
-    [SiriusServerImpl::TYPE_ABORT]   = &SiriusServerImpl::pushToThread<RequestType, SYNC_TYPE>,
-    [SiriusServerImpl::TYPE_ENQUEUE] = &SiriusServerImpl::pushToThread<BufferInfo,  SYNC_TYPE>,
-    [SiriusServerImpl::TYPE_SET_CB]  = &SiriusServerImpl::pushToThread<CbInfo,      SYNC_TYPE>,
+const ServerImpl::PushToThreadFunc
+    ServerImpl::gAddThreadTaskFunc[] = {
+    [ServerImpl::TYPE_REQUEST] = &ServerImpl::pushToThread<RequestType, SYNC_TYPE>,
+    [ServerImpl::TYPE_ABORT]   = &ServerImpl::pushToThread<RequestType, SYNC_TYPE>,
+    [ServerImpl::TYPE_ENQUEUE] = &ServerImpl::pushToThread<BufferInfo,  SYNC_TYPE>,
+    [ServerImpl::TYPE_SET_CB]  = &ServerImpl::pushToThread<CbInfo,      SYNC_TYPE>,
 };
 
 #define CONSTRUCT_IMPL() \
@@ -223,25 +223,25 @@ const SiriusServerImpl::PushToThreadFunc
         if (!mConstructed) { \
             rc = construct(); \
             if (!SUCCEED(rc)) { \
-                LOGE(mModule, "Failed to construct Sirius impl %d", rc); \
+                LOGE(mModule, "Failed to construct  impl %d", rc); \
                 return rc; \
             } \
         } \
     } while(0)
 
-int32_t SiriusServerImpl::request(RequestType type)
+int32_t ServerImpl::request(RequestType type)
 {
     CONSTRUCT_IMPL();
     return (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &type);
 }
 
-int32_t SiriusServerImpl::abort(RequestType type)
+int32_t ServerImpl::abort(RequestType type)
 {
     CONSTRUCT_IMPL();
     return (this->*(gAddThreadTaskFunc[TYPE_ABORT]))(TYPE_ABORT, &type);
 }
 
-int32_t SiriusServerImpl::enqueue(RequestType type, int32_t id)
+int32_t ServerImpl::enqueue(RequestType type, int32_t id)
 {
     CONSTRUCT_IMPL();
     BufferInfo buf = {
@@ -251,7 +251,7 @@ int32_t SiriusServerImpl::enqueue(RequestType type, int32_t id)
     return (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &buf);
 }
 
-int32_t SiriusServerImpl::setCallback(RequestCbFunc requestCb)
+int32_t ServerImpl::setCallback(RequestCbFunc requestCb)
 {
     CONSTRUCT_IMPL();
     CbInfo func = {
@@ -262,7 +262,7 @@ int32_t SiriusServerImpl::setCallback(RequestCbFunc requestCb)
     return (this->*(gAddThreadTaskFunc[TYPE_SET_CB]))(TYPE_SET_CB, &func);
 }
 
-int32_t SiriusServerImpl::setCallback(EventCbFunc eventCb)
+int32_t ServerImpl::setCallback(EventCbFunc eventCb)
 {
     CONSTRUCT_IMPL();
     CbInfo func = {
@@ -273,7 +273,7 @@ int32_t SiriusServerImpl::setCallback(EventCbFunc eventCb)
     return (this->*(gAddThreadTaskFunc[TYPE_SET_CB]))(TYPE_SET_CB, &func);
 }
 
-int32_t SiriusServerImpl::setCallback(DataCbFunc dataCb)
+int32_t ServerImpl::setCallback(DataCbFunc dataCb)
 {
     CONSTRUCT_IMPL();
     CbInfo func = {
@@ -284,28 +284,28 @@ int32_t SiriusServerImpl::setCallback(DataCbFunc dataCb)
     return (this->*(gAddThreadTaskFunc[TYPE_SET_CB]))(TYPE_SET_CB, &func);
 }
 
-int32_t SiriusServerImpl::coreRequest(void *_type)
+int32_t ServerImpl::coreRequest(void *_type)
 {
     RequestType *type = static_cast<RequestType *>(_type);
     return ISNULL(mCore) ?
         NOT_INITED : mCore->request(*type);
 }
 
-int32_t SiriusServerImpl::coreAbort(void *_type)
+int32_t ServerImpl::coreAbort(void *_type)
 {
     RequestType *type = static_cast<RequestType *>(_type);
     return ISNULL(mCore) ?
         NOT_INITED : mCore->abort(*type);
 }
 
-int32_t SiriusServerImpl::coreEnqueue(void *_info)
+int32_t ServerImpl::coreEnqueue(void *_info)
 {
     BufferInfo *inf = static_cast<BufferInfo *>(_info);
     return ISNULL(mCore) ?
         NOT_INITED : mCore->enqueue(inf->type, inf->id);
 }
 
-int32_t SiriusServerImpl::coreSetCallback(void *_func)
+int32_t ServerImpl::coreSetCallback(void *_func)
 {
     int32_t rc = NO_ERROR;
 

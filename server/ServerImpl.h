@@ -1,17 +1,17 @@
-#ifndef _SIRIUS_SERVER_IMPL_H_
-#define _SIRIUS_SERVER_IMPL_H_
+#ifndef _VOYAGER_SERVER_IMPL_H_
+#define _VOYAGER_SERVER_IMPL_H_
 
 #include "common.h"
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 #include "SyncType.h"
 
-namespace sirius {
+namespace voyager {
 
-class SiriusCore;
+class Core;
 class ThreadPoolEx;
 
-class SiriusServerImpl :
-    public SiriusServerIntf,
+class ServerImpl :
+    public ServerIntf,
     public noncopyable  {
 public:
     int32_t request(RequestType type) override;
@@ -40,8 +40,8 @@ private:
     int32_t coreSetCallback(void *func);
 
 public:
-    SiriusServerImpl();
-    virtual ~SiriusServerImpl();
+    ServerImpl();
+    virtual ~ServerImpl();
     int32_t construct();
     int32_t destruct();
 
@@ -75,7 +75,7 @@ public:
         explicit TaskBase(
             TaskType  _type = TYPE_MAX_INVALID,
             sync_type _sync = SYNC_TYPE) :
-            type(_type), sync(_sync), module(MODULE_SIRIUS_IMPL) {}
+            type(_type), sync(_sync), module(MODULE_VOYAGER_IMPL) {}
         virtual ~TaskBase() {}
     };
 
@@ -93,7 +93,7 @@ public:
     };
 
 private:
-    typedef int32_t (SiriusServerImpl::*PushToThreadFunc)(TaskType type, void *arg);
+    typedef int32_t (ServerImpl::*PushToThreadFunc)(TaskType type, void *arg);
 
     template <typename T, sync_type sync = SYNC_TYPE>
     int32_t pushToThread(TaskType type, void *value);
@@ -106,7 +106,7 @@ private:
     ModuleType    mModule;
     uint32_t      mTaskCnt;
     ThreadPoolEx *mThreads;
-    SiriusCore   *mCore;
+    Core   *mCore;
     static const PushToThreadFunc gAddThreadTaskFunc[];
 };
 

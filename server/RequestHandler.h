@@ -2,13 +2,13 @@
 #define _REQUEST_HANDLER_H_
 
 #include "common.h"
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 #include "HandlerOpsIntf.h"
 #include "RequestHandlerIntf.h"
 #include "ThreadPoolEx.h"
 #include "SocketServerStateMachine.h"
 
-namespace sirius {
+namespace voyager {
 
 class RequestHandler :
     public RequestHandlerIntf {

@@ -1,8 +1,8 @@
-#include "SiriusCore.h"
+#include "ServerCore.h"
 
-namespace sirius {
+namespace voyager {
 
-int32_t SiriusCore::construct()
+int32_t ServerCore::construct()
 {
     int32_t rc = NO_ERROR;
     int32_t size = 0;
@@ -75,13 +75,13 @@ int32_t SiriusCore::construct()
 
     if (SUCCEED(rc)) {
         mConstructed = true;
-        LOGD(mModule, "Sirius core constructed");
+        LOGD(mModule, " core constructed");
     }
 
     return rc;
 }
 
-int32_t SiriusCore::startServerLoop()
+int32_t ServerCore::startServerLoop()
 {
     int32_t rc = NO_ERROR;
 
@@ -233,7 +233,7 @@ int32_t SiriusCore::startServerLoop()
     return rc;
 }
 
-int32_t SiriusCore::convertToRequestType(
+int32_t ServerCore::convertToRequestType(
     char *msg, RequestType *type)
 {
     int32_t rc = NO_ERROR;
@@ -244,20 +244,20 @@ int32_t SiriusCore::convertToRequestType(
         LOGE(mModule, "Invalid msg, %s", msg);
         rc = PARAM_INVALID;
     } else {
-        *type = ::sirius::convertToRequestType(value);
+        *type = ::voyager::convertToRequestType(value);
     }
 
     return rc;
 }
 
-int32_t SiriusCore::enableCachedRequests()
+int32_t ServerCore::enableCachedRequests()
 {
     int32_t rc = NO_ERROR;
 
     for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
         if (mCachedRequest[i]) {
             LOGD(mModule, "Enable cached request %d", i);
-            rc = request(::sirius::convertToRequestType(i));
+            rc = request(::voyager::convertToRequestType(i));
             if (!SUCCEED(rc)) {
                 LOGE(mModule, "Failed to create cached request %d", rc);
             } else {
@@ -269,7 +269,7 @@ int32_t SiriusCore::enableCachedRequests()
     return rc;
 }
 
-int32_t SiriusCore::exitServerLoop()
+int32_t ServerCore::exitServerLoop()
 {
     int32_t rc = mSS.cancelWaitConnect();
     if (!SUCCEED(rc)) {
@@ -279,7 +279,7 @@ int32_t SiriusCore::exitServerLoop()
     return rc;
 }
 
-int32_t SiriusCore::destruct()
+int32_t ServerCore::destruct()
 {
     int32_t rc = NO_ERROR;
     int32_t final = NO_ERROR;
@@ -293,7 +293,7 @@ int32_t SiriusCore::destruct()
     if (SUCCEED(rc)) {
         for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
             rc = mCtl.setRequest(
-                ::sirius::convertToRequestType(i), DISABLE_REQUEST);
+                ::voyager::convertToRequestType(i), DISABLE_REQUEST);
             if (!SUCCEED(rc)) {
                 final |= rc;
                 LOGE(mModule, "Failed to cancel request %d", i);
@@ -387,15 +387,15 @@ int32_t SiriusCore::destruct()
     }
 
     if (!SUCCEED(final)) {
-        LOGE(mModule, "Sirius core destructed with error %d", final);
+        LOGE(mModule, " core destructed with error %d", final);
     } else {
-        LOGD(mModule, "Sirius core destructed");
+        LOGD(mModule, " core destructed");
     }
 
     return rc;
 }
 
-int32_t SiriusCore::createRequestHandler(RequestType type)
+int32_t ServerCore::createRequestHandler(RequestType type)
 {
     int32_t rc = NO_ERROR;
     RequestHandler *requestHandler = NULL;
@@ -443,7 +443,7 @@ int32_t SiriusCore::createRequestHandler(RequestType type)
     return rc;
 }
 
-int32_t SiriusCore::request(RequestType type)
+int32_t ServerCore::request(RequestType type)
 {
     int32_t rc = NO_ERROR;
 
@@ -480,7 +480,7 @@ int32_t SiriusCore::request(RequestType type)
     return RETURNIGNORE(rc, JUMP_DONE);
 }
 
-int32_t SiriusCore::abort(RequestType type)
+int32_t ServerCore::abort(RequestType type)
 {
     int32_t rc = NO_ERROR;
     RequestHandlerIntf *requestHandler = NULL;
@@ -533,7 +533,7 @@ int32_t SiriusCore::abort(RequestType type)
     return RETURNIGNORE(rc, NOT_INITED);
 }
 
-bool SiriusCore::requested(RequestType type)
+bool ServerCore::requested(RequestType type)
 {
     int32_t rc = NO_ERROR;
     bool result = false;
@@ -551,7 +551,7 @@ bool SiriusCore::requested(RequestType type)
     return result;
 }
 
-int32_t SiriusCore::enqueue(RequestType type, int32_t id)
+int32_t ServerCore::enqueue(RequestType type, int32_t id)
 {
     int32_t rc = NO_ERROR;
 
@@ -589,84 +589,84 @@ int32_t SiriusCore::enqueue(RequestType type, int32_t id)
     return RETURNIGNORE(rc, NOT_REQUIRED);
 }
 
-int32_t SiriusCore::setCallback(RequestCbFunc requestCb)
+int32_t ServerCore::setCallback(RequestCbFunc requestCb)
 {
     return mCb.setCallback(requestCb);
 }
 
-int32_t SiriusCore::setCallback(EventCbFunc eventCb)
+int32_t ServerCore::setCallback(EventCbFunc eventCb)
 {
     return mCb.setCallback(eventCb);
 }
 
-int32_t SiriusCore::setCallback(DataCbFunc dataCb)
+int32_t ServerCore::setCallback(DataCbFunc dataCb)
 {
     return mCb.setCallback(dataCb);
 }
 
-int32_t SiriusCore::send(RequestType type, int32_t id, void *head, void *dat)
+int32_t ServerCore::send(RequestType type, int32_t id, void *head, void *dat)
 {
     return mCb.send(type, id, head, dat);
 }
 
-int32_t SiriusCore::send(int32_t event, int32_t arg1, int32_t arg2)
+int32_t ServerCore::send(int32_t event, int32_t arg1, int32_t arg2)
 {
     return mCb.send(event, arg1, arg2);
 }
 
-int32_t SiriusCore::send(int32_t type, void *data, int32_t size)
+int32_t ServerCore::send(int32_t type, void *data, int32_t size)
 {
     return mCb.send(type, data, size);
 }
 
-int32_t SiriusCore::allocateBuf(void **buf, int32_t len, int32_t *fd)
+int32_t ServerCore::allocateBuf(void **buf, int32_t len, int32_t *fd)
 {
     return mBuffer.allocate(buf, len, fd);
 }
 
-int32_t SiriusCore::releaseBuf(void *buf)
+int32_t ServerCore::releaseBuf(void *buf)
 {
     return mBuffer.release(buf);
 }
 
-int32_t SiriusCore::setMemStatus(RequestType type, int32_t fd, bool fresh)
+int32_t ServerCore::setMemStatus(RequestType type, int32_t fd, bool fresh)
 {
     return mCtl.setMemStatus(type, fd, fresh);
 }
 
-int32_t SiriusCore::getMemStatus(RequestType type, int32_t fd, bool *fresh)
+int32_t ServerCore::getMemStatus(RequestType type, int32_t fd, bool *fresh)
 {
     return mCtl.getMemStatus(type, fd, fresh);
 }
 
-int32_t SiriusCore::setMemSize(RequestType type, int32_t size)
+int32_t ServerCore::setMemSize(RequestType type, int32_t size)
 {
     return mCtl.setMemSize(type, size);
 }
 
-int32_t SiriusCore::getMemSize(RequestType type, int32_t *size)
+int32_t ServerCore::getMemSize(RequestType type, int32_t *size)
 {
     return mCtl.getMemSize(type, size);
 }
 
-int32_t SiriusCore::addMemory(RequestType type, int32_t clientfd, bool fresh)
+int32_t ServerCore::addMemory(RequestType type, int32_t clientfd, bool fresh)
 {
     return mCtl.addMemory(type, clientfd, fresh);
 }
 
-int32_t SiriusCore::setRequestedMark(RequestType type, bool enable)
+int32_t ServerCore::setRequestedMark(RequestType type, bool enable)
 {
     return mCtl.setRequest(type, enable);
 }
 
-int32_t SiriusCore::getHeader(Header &header)
+int32_t ServerCore::getHeader(Header &header)
 {
     return mCtl.getHeader(header);
 }
 
-SiriusCore::SiriusCore() :
+ServerCore::ServerCore() :
     mConstructed(false),
-    mModule(MODULE_SIRIUS_CORE),
+    mModule(MODULE_VOYAGER_CORE),
     mClientReady(false),
     mCtlFd(-1),
     mCtlMem(NULL)
@@ -677,7 +677,7 @@ SiriusCore::SiriusCore() :
     }
 }
 
-SiriusCore::~SiriusCore()
+ServerCore::~ServerCore()
 {
     if (mConstructed) {
         destruct();
@@ -692,9 +692,9 @@ SiriusCore::~SiriusCore()
 #include "EventServer.h"
 #include "DataServer.h"
 
-namespace sirius {
+namespace voyager {
 
-RequestHandler *SiriusCore::createHandler(RequestType type)
+RequestHandler *ServerCore::createHandler(RequestType type)
 {
     RequestHandler *request = NULL;
 

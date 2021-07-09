@@ -23,7 +23,7 @@
         if (ISNULL(mMgr)) { \
             CREATE_IMPL(); \
             if (ISNULL(mMgr)) { \
-                LOGE(MODULE_BUF_MANAGER, "Failed to create ion buffer manager."); \
+                LOGE(MODULE_BUF_MANAGER, "Failed to create buffer manager."); \
                 __rc = NOT_INITED; \
             } \
         } \
@@ -34,7 +34,6 @@
         ({ \
             int32_t __rc = NO_ERROR; \
             if (ISNULL(mMgr)) { \
-                LOGD(MODULE_BUF_MANAGER, "Sirius impl not created"); \
                 __rc = NOT_INITED; \
             } \
             __rc; \

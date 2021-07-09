@@ -4,7 +4,7 @@
 #include "IonBufferMgr.h"
 #include "socket_client.h"
 
-using namespace sirius;
+using namespace voyager;
 
 #define SHARE_MEMORY_SIZE 1024*1024
 

@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 
-namespace sirius {
+namespace voyager {
 
 #define FRESH_MEMORY    1
 #define USED_MEMORY     0

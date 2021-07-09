@@ -1,13 +1,13 @@
-#include "SiriusServer.h"
-#include "SiriusServerImpl.h"
+#include "Server.h"
+#include "ServerImpl.h"
 
-namespace sirius {
+namespace voyager {
 
 #define CHECK_VALID_IMPL() \
     ({ \
         int32_t __rc = NO_ERROR; \
         if (ISNULL(mImpl)) { \
-            LOGD(MODULE_SIRIUS, "Sirius impl not created"); \
+            LOGD(MODULE_VOYAGER, " impl not created"); \
             __rc = NOT_INITED; \
         } \
         __rc; \
@@ -17,18 +17,18 @@ namespace sirius {
     ({ \
         int32_t __rc = NO_ERROR; \
         if (ISNULL(mImpl)) { \
-            mImpl = new SiriusServerImpl(); \
+            mImpl = new ServerImpl(); \
             if (ISNULL(mImpl)) { \
-                LOGE(MODULE_SIRIUS, "Failed to create Sirius impl"); \
+                LOGE(MODULE_VOYAGER, "Failed to create  impl"); \
                 __rc = NOT_INITED; \
             } else { \
                 __rc = mImpl->construct(); \
                 if (!SUCCEED(__rc)) { \
-                    LOGE(MODULE_SIRIUS, "Failed to construct Sirius impl"); \
+                    LOGE(MODULE_VOYAGER, "Failed to construct  impl"); \
                     delete mImpl; \
                     mImpl = NULL; \
                 } else { \
-                    LOGI(MODULE_SIRIUS, "Sirius impl constructed."); \
+                    LOGI(MODULE_VOYAGER, " impl constructed."); \
                 } \
             } \
         } \
@@ -45,48 +45,48 @@ namespace sirius {
         __rc; \
     })
 
-int32_t SiriusServer::request(RequestType type)
+int32_t Server::request(RequestType type)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->request(type) : rc;
 }
 
-int32_t SiriusServer::abort(RequestType type)
+int32_t Server::abort(RequestType type)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->abort(type) : rc;
 }
 
-int32_t SiriusServer::enqueue(RequestType type, int32_t id)
+int32_t Server::enqueue(RequestType type, int32_t id)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->enqueue(type, id) : rc;
 }
 
-int32_t SiriusServer::setCallback(RequestCbFunc requestCb)
+int32_t Server::setCallback(RequestCbFunc requestCb)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->setCallback(requestCb) : rc;
 }
 
-int32_t SiriusServer::setCallback(EventCbFunc eventCb)
+int32_t Server::setCallback(EventCbFunc eventCb)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->setCallback(eventCb) : rc;
 }
 
-int32_t SiriusServer::setCallback(DataCbFunc dataCb)
+int32_t Server::setCallback(DataCbFunc dataCb)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
     return SUCCEED(rc) ? mImpl->setCallback(dataCb) : rc;
 }
 
-SiriusServer::SiriusServer() :
+Server::Server() :
     mImpl(NULL)
 {
 }
 
-SiriusServer::~SiriusServer()
+Server::~Server()
 {
     if (!ISNULL(mImpl)) {
         mImpl->destruct();

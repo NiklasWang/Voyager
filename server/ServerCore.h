@@ -1,8 +1,8 @@
-#ifndef _SIRIUS_CORE_H_
-#define _SIRIUS_CORE_H_
+#ifndef _VOYAGER_CORE_H_
+#define _VOYAGER_CORE_H_
 
 #include "common.h"
-#include "SiriusServerIntf.h"
+#include "ServerIntf.h"
 #include "HandlerOpsIntf.h"
 #include "BufferMgr.h"
 #include "ServerClientControl.h"
@@ -11,10 +11,10 @@
 #include "RequestHandler.h"
 #include "ThreadPoolEx.h"
 
-namespace sirius {
+namespace voyager {
 
-class SiriusCore :
-    public SiriusServerIntf,
+class ServerCore :
+    public ServerIntf,
     public HandlerOpsIntf,
     public noncopyable {
 public:
@@ -40,8 +40,8 @@ public:
     int32_t getHeader(Header &header) override;
 
 public:
-    SiriusCore();
-    virtual ~SiriusCore();
+    ServerCore();
+    virtual ~ServerCore();
     int32_t construct();
     int32_t destruct();
 
