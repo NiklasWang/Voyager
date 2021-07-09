@@ -11,6 +11,38 @@ namespace voyager {
         __rc; \
     })
 
+OverallControlLayout::Sockets::Server &operator++(OverallControlLayout::Sockets::Server &rhs)
+{
+    ++rhs.currentConnections;
+
+    return *this;
+}
+
+OverallControlLayout::Sockets::Server operator++(OverallControlLayout::Sockets::Server &rhs, int)
+{
+    OverallControlLayout::Sockets::Server tmp = rhs;
+
+    ++(*this);
+
+    return tmp;
+}
+
+OverallControlLayout::Sockets::Server &operator--(OverallControlLayout::Sockets::Server &rhs)
+{
+    --rhs.currentConnections;
+
+    return *this;
+}
+
+OverallControlLayout::Sockets::Server operator--(OverallControlLayout::Sockets::Server &rhs, int)
+{
+    OverallControlLayout::Sockets::Server tmp = rhs;
+
+    --(*this);
+
+    return tmp;
+}
+
 int32_t OverallControl::addServer(const char *path, const char *name, int32_t maxConnection)
 {
     int32_t rc = CHECK_SET_LAYOUT();
@@ -75,6 +107,7 @@ int32_t OverallControl::addClient(const char *path, const char *name)
 {
     int32_t rc = CHECK_SET_LAYOUT();
     int32_t existingIndex = -1;
+    int32_t serverIndex = -1;
 
     if (SUCCEED(rc)) {
         rc = searchClient(path, name, existingIndex);
@@ -84,6 +117,18 @@ int32_t OverallControl::addClient(const char *path, const char *name)
             if (existingIndex != -1) {
                 LOGE(mModule, "Client existed in overall control, %s %s", path, name);
                 rc = ALREADY_EXISTS;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = searchServer(path, name, serverIndex);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to search server info, %d", rc);
+        } else {
+            if (serverIndex != -1) {
+                LOGE(mModule, "Client connected server info not found, %s %s", path, name);
+                rc = NOT_FOUND;
             }
         }
     }
@@ -99,6 +144,7 @@ int32_t OverallControl::addClient(const char *path, const char *name)
                 break;
             }
         }
+        ++mLayout->sockets.server[serverIndex];
     }
 
     return rc;
@@ -108,6 +154,7 @@ int32_t OverallControl::removeClient(const char *path, const char *name)
 {
     int32_t rc = CHECK_SET_LAYOUT();
     int32_t existingIndex = -1;
+    int32_t serverIndex = -1;
 
     if (SUCCEED(rc)) {
         rc = searchClient(path, name, existingIndex);
@@ -117,9 +164,22 @@ int32_t OverallControl::removeClient(const char *path, const char *name)
     }
 
     if (SUCCEED(rc)) {
+        rc = searchServer(path, name, serverIndex);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to search server info, %d", rc);
+        } else {
+            if (serverIndex != -1) {
+                LOGE(mModule, "Client connected server info not found, %s %s", path, name);
+                rc = NOT_FOUND;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
         if (existingIndex != -1) {
             mLayout->sockets.client[existingIndex].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID;
+            --mLayout->sockets.server[serverIndex];
         } else {
             LOGE(mModule, "Client not existed in overall control, %s %s", path, name);
             rc = NOT_EXIST;
@@ -193,6 +253,7 @@ int32_t OverallControl::addClient(const char *ip, int32_t port)
 {
     int32_t rc = CHECK_SET_LAYOUT();
     int32_t existingIndex = -1;
+    int32_t serverIndex = -1;
 
     if (SUCCEED(rc)) {
         rc = searchClient(ip, port, existingIndex);
@@ -202,6 +263,18 @@ int32_t OverallControl::addClient(const char *ip, int32_t port)
             if (existingIndex != -1) {
                 LOGE(mModule, "Client existed in overall control, %s %d", ip, port);
                 rc = ALREADY_EXISTS;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = searchServer(ip, port, serverIndex);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to search server info, %d", rc);
+        } else {
+            if (serverIndex != -1) {
+                LOGE(mModule, "Client connected server info not found, %s %d", ip, port);
+                rc = NOT_FOUND;
             }
         }
     }
@@ -217,6 +290,7 @@ int32_t OverallControl::addClient(const char *ip, int32_t port)
                 break;
             }
         }
+        ++mLayout->sockets.server[serverIndex];
     }
 
     return rc;
@@ -226,6 +300,7 @@ int32_t OverallControl::removeClient(const char *ip, int32_t port)
 {
     int32_t rc = CHECK_SET_LAYOUT();
     int32_t existingIndex = -1;
+    int32_t serverIndex = -1;
 
     if (SUCCEED(rc)) {
         rc = searchClient(ip, port, existingIndex);
@@ -235,9 +310,22 @@ int32_t OverallControl::removeClient(const char *ip, int32_t port)
     }
 
     if (SUCCEED(rc)) {
+        rc = searchServer(ip, port, serverIndex);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to search server info, %d", rc);
+        } else {
+            if (serverIndex != -1) {
+                LOGE(mModule, "Client connected server info not found, %s %d", ip, port);
+                rc = NOT_FOUND;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
         if (existingIndex != -1) {
             mLayout->sockets.client[existingIndex].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID;
+            --mLayout->sockets.server[serverIndex];
         } else {
             LOGE(mModule, "Client not existed in overall control, %s %d", ip, port);
             rc = NOT_EXIST;
@@ -359,6 +447,44 @@ int32_t OverallControl::initLayout()
 
 void OverallControl::dump(const char *prefix)
 {
+    LOGI(mModule, "Dump overall control data, %s", prefix);
+
+    LOGI(mModule, "--- Servers: ---");
+    for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        if (mLayout->sockets.server[i].type ==
+            OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_IP) {
+            LOGI(mModule, " - IP: %s Port %d connections %d max connection %d",
+                mLayout->sockets.server[i].address.ip.ip,
+                mLayout->sockets.server[i].address.ip.port,
+                mLayout->sockets.server[i].currentConnections,
+                mLayout->sockets.server[i].maxConnection);
+        } else if (mLayout->sockets.server[i].type ==
+            OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_LOCAL) {
+            LOGI(mModule, " - Local path: %s File %d connections %d max connection %d",
+                mLayout->sockets.server[i].address.local.path,
+                mLayout->sockets.server[i].address.local.name,
+                mLayout->sockets.server[i].currentConnections,
+                mLayout->sockets.server[i].maxConnection);
+        }
+    }
+
+    LOGI(mModule, "--- Clients: ---");
+    for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        if (mLayout->sockets.client[i].type ==
+            OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_IP) {
+            LOGI(mModule, " - Connected to IP: %s Port %d",
+                mLayout->sockets.client[i].connect.ip.ip,
+                mLayout->sockets.client[i].connect.ip.port);
+        } else if (mLayout->sockets.client[i].type ==
+            OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_LOCAL) {
+            LOGI(mModule, " - Connected to IP: %s Port %d",
+                mLayout->sockets.client[i].connect.local.path,
+                mLayout->sockets.client[i].connect.local.name);
+        }
+    }
+
+    LOGI(mModule, "Finished to dumping overall control data.");
+
     return;
 }
 
