@@ -1,13 +1,11 @@
-#ifndef _VOYAGER_CORE_H_
-#define _VOYAGER_CORE_H_
+#ifndef _VOYAGER_SERVER_CORE_H_
+#define _VOYAGER_SERVER_CORE_H_
 
 #include "common.h"
 #include "ServerIntf.h"
-#include "HandlerOpsIntf.h"
-#include "BufferMgr.h"
-#include "ServerClientControl.h"
+#include "OverallControlSingleton.h"
 #include "SocketServerStateMachine.h"
-#include "ServerCallbackThread.h"
+#include "CallbackThread.h"
 #include "RequestHandler.h"
 #include "ThreadPoolEx.h"
 
@@ -15,56 +13,59 @@ namespace voyager {
 
 class ServerCore :
     public ServerIntf,
-    public HandlerOpsIntf,
+    public CallbackThread,
+    public Identifier,
     public noncopyable {
 public:
-    int32_t request(RequestType type) override;
-    int32_t abort(RequestType type) override;
-    int32_t enqueue(RequestType type, int32_t id) override;
-    int32_t setCallback(RequestCbFunc requestCb) override;
-    int32_t setCallback(EventCbFunc eventCb) override;
-    int32_t setCallback(DataCbFunc dataCb) override;
+    virtual int32_t request(DataCbFunc dataCbFunc) override;
+    virtual int32_t enqueue(void *dat) override;
+    virtual int32_t request(FdCbFunc fdCbFunc) override;
+    virtual int32_t enqueue(int32_t fd) override;
+    virtual int32_t request(FrameCbFunc frameCbFunc) override;
+    virtual int32_t enqueue(void *dat, int32_t format) override;
+    virtual int32_t request(EventCbFunc eventCbFunc) override;
+    virtual int32_t cancel(RequestType type) override;
 
 public:
-    int32_t send(RequestType type, int32_t id, void *head, void *dat) override;
+    int32_t send(void *dat, int64_t len) override;
+    int32_t send(int32_t fd, int64_t len) override;
+    int32_t send(void *dat, int64_t len, int32_t format) override;
     int32_t send(int32_t event, int32_t arg1, int32_t arg2) override;
-    int32_t send(int32_t type, void *data, int32_t size) override;
-    int32_t allocateBuf(void **buf, int32_t len, int32_t *fd) override;
-    int32_t releaseBuf(void *buf) override;
-    int32_t setMemStatus(RequestType type, int32_t fd, bool fresh = false) override;
-    int32_t getMemStatus(RequestType type, int32_t fd, bool *fresh) override;
-    int32_t setMemSize(RequestType type, int32_t size) override;
-    int32_t getMemSize(RequestType type, int32_t *size) override;
-    int32_t addMemory(RequestType type, int32_t clientfd, bool fresh = false) override;
-    int32_t setRequestedMark(RequestType type, bool enable = false) override;
-    int32_t getHeader(Header &header) override;
 
 public:
     ServerCore();
     virtual ~ServerCore();
-    int32_t construct();
+    int32_t construct(const std::string &name, bool enableOverallControl);
     int32_t destruct();
 
 private:
-    virtual int32_t startServerLoop();
-    virtual int32_t exitServerLoop();
-    bool requested(RequestType type);
+    int32_t startServerLoop();
+    int32_t exitServerLoop();
+    int32_t shareOverallControl();
+    int32_t replyClientRequestNotRequested();
+    int32_t request(RequestType type);
+    template <typename T>
+    int32_t request(T cbFunc, RequestType type);
     int32_t createRequestHandler(RequestType type);
     RequestHandler *createHandler(RequestType type);
-    int32_t enableCachedRequests();
-    int32_t convertToRequestType(char *msg, RequestType *type);
+    int32_t abort(RequestType type);
+    int32_t enableAllRequestedRequests();
+    int32_t revealRequestTypeAndPrivateArgFromMsg(
+        char *msg, RequestType &type, std::string &privateArg);
+    bool    validFd(int32_t fd);
+    bool    requested(RequestType type);
 
 private:
     bool                     mConstructed;
-    ModuleType               mModule;
+    std::string              mName;
+    bool                     mEnableOverallControl;
     bool                     mClientReady;
-    int32_t                  mCtlFd;
-    void                    *mCtlMem;
-    ServerClientControl      mCtl;
+    bool                     mCachedRequest[REQUEST_TYPE_MAX_INVALID];
+    OverallControlSingleton *mOverallControl;
+    int32_t                  mOverallControlFd;
     SocketServerStateMachine mSS;
     char                     mSocketMsg[SOCKET_DATA_MAX_LEN];
-    BufferMgr                mBuffer;
-    ServerCallbackThread     mCb;
+    CallbackThread           mCb;
     ThreadPoolEx            *mThreads;
     RequestHandlerIntf      *mRequests[REQUEST_TYPE_MAX_INVALID];
     bool                     mCachedRequest[REQUEST_TYPE_MAX_INVALID];

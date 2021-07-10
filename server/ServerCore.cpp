@@ -1,55 +1,59 @@
 #include "ServerCore.h"
+#include "protocol.h"
 
 namespace voyager {
 
-int32_t ServerCore::construct()
+int32_t ServerCore::construct(const std::string &name, bool enableOverallControl)
 {
     int32_t rc = NO_ERROR;
     int32_t size = 0;
+    mName = name;
+    mEnableOverallControl = enableOverallControl;
 
     if (mConstructed) {
         rc = ALREADY_INITED;
     }
 
     if (SUCCEED(rc)) {
-        rc = mBuffer.init();
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to init ion buf mgr, %d", rc);
+        if (mEnableOverallControl) {
+            mOverallControl = OverallControlSingleton::getInstance();
+            if (ISNULL(mOverallControl)) {
+                LOGE(mModule, "Failed to create overall control.");
+                rc = NO_MEMORY;
+            }
         }
     }
 
     if (SUCCEED(rc)) {
-        size = mCtl.getTotoalSize();
-        if (size <= 0) {
-            LOGE(mModule, "Invalid control blcok size %d", size);
-            rc = PARAM_INVALID;
+        if (NOTNULL(mOverallControl)) {
+            rc = mOverallControl->addServer(
+                SERVER_SOCKET_PATH, mName, MAX_CLIENT_ALLOWED);
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to add main server into overall control, %d", rc);
+            }
         }
     }
 
     if (SUCCEED(rc)) {
-        rc = mBuffer.allocate(&mCtlMem, size, &mCtlFd);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to alloc %dB ion buf", size);
+        if (NOTNULL(mOverallControl)) {
+            mOverallControlFd = mOverallControl->getFd();
+            if (mOverallControlFd <= 0) {
+                LOGE(mModule, "Invalid overall control fd, %d", mOverallControlFd);
+                rc = INTERNAL_ERROR;
+            }
         }
     }
 
     if (SUCCEED(rc)) {
-        rc = mCtl.init(mCtlMem, size, true);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set memory to control mgr, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSS.construct();
-        if (!SUCCEED(rc)) {
+        rc = mSS.construct((mName + SOCKET_SUFFIX_AFTER_SERVER_NAME).c_str());
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct server state machine, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         rc = mCb.construct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct callback thread, %d", rc);
         }
     }
@@ -68,14 +72,14 @@ int32_t ServerCore::construct()
                 return startServerLoop();
             }
         );
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to run once thread, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         mConstructed = true;
-        LOGD(mModule, " core constructed");
+        LOGD(mModule, "Server core constructed");
     }
 
     return rc;
@@ -89,14 +93,14 @@ int32_t ServerCore::startServerLoop()
         rc = mSS.startServer();
         if (rc == USER_ABORTED) {
             LOGI(mModule, "Cancelled to wait connection, exit task.");
-        } else if (!SUCCEED(rc)) {
+        } else if (FAILED(rc)) {
             LOGE(mModule, "Failed to start socket server");
         }
     }
 
     if (SUCCEED(rc)) {
         rc = mSS.waitForConnect();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to wait for client connection");
         }
     }
@@ -111,57 +115,42 @@ int32_t ServerCore::startServerLoop()
     if (SUCCEED(rc)) {
         mSocketMsg[0] = '\0';
         rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_CLIENT_GREETING_STR)) {
-            mSocketMsg[sizeof(mSocketMsg) - 1] = '\0';
             LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
-            rc = NOT_READY;
+            rc = BAD_PROTOCOL;
         }
     }
 
     if (SUCCEED(rc)) {
-        rc = mSS.sendFd(mCtlFd);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send fd %d to client, %d", mCtlFd, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mSocketMsg[0] = '\0';
-        rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_CLIENT_REPLY_STR)) {
-            mSocketMsg[sizeof(mSocketMsg) - 1] = '\0';
-            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
-            rc = NOT_READY;
+        if (validFd(mOverallControlFd)) {
+            rc = shareOverallControl();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to share overall control to client, %d", rc);
+            }
         } else {
             mClientReady = true;
         }
     }
 
     if (SUCCEED(rc)) {
-        rc = enableCachedRequests();
-        if (!SUCCEED(rc)) {
+        rc = enableAllRequestedRequests();
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to enable cached requests, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
-        rc = mSS.sendMsg(SOCKET_CLIENT_REPLY_STR,
-            strlen(SOCKET_CLIENT_REPLY_STR));
-        if (!SUCCEED(rc)) {
+        rc = mSS.sendMsg(SOCKET_START_REQUEST_CONNECTION,
+            strlen(SOCKET_START_REQUEST_CONNECTION));
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
-                SOCKET_CLIENT_REPLY_STR, rc);
+                SOCKET_START_REQUEST_CONNECTION, rc);
         }
     }
 
@@ -169,11 +158,12 @@ int32_t ServerCore::startServerLoop()
         do {
             int32_t clientfd = -1;
             RequestType type = REQUEST_TYPE_MAX_INVALID;
+            std::string privateMsg;
             RESETRESULT(rc);
 
             if (SUCCEED(rc)) {
                 rc = mSS.waitForConnect(&clientfd);
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to wait for client connection");
                 }
                 if (rc == USER_ABORTED) {
@@ -185,83 +175,208 @@ int32_t ServerCore::startServerLoop()
             if (SUCCEED(rc)) {
                 mSocketMsg[0] = '\0';
                 rc = mSS.receiveMsg(clientfd, mSocketMsg, sizeof(mSocketMsg));
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     LOGE(mModule, "Failed to receive msg, %d", rc);
                 }
             }
 
             if (SUCCEED(rc)) {
-                rc = convertToRequestType(mSocketMsg, &type);
-                if (!SUCCEED(rc) || type == REQUEST_TYPE_MAX_INVALID) {
+                rc = revealRequestTypeAndPrivateArgFromMsg(mSocketMsg, type, privateMsg);
+                if (FAILED(rc) ||
+                    type == REQUEST_TYPE_MAX_INVALID ||
+                    privateMsg == "") {
                     LOGE(mModule, "Invalid socket msg, %s", mSocketMsg);
                 }
             }
 
             if (SUCCEED(rc)) {
-                if (ISNULL(mRequests[type])) {
-                    LOGE(mModule, "Request %d not created, should't be here.", type);
-                    rc = BAD_PROTOCAL;
+                if (requested(type)) {
+                    rc = mRequests[type]->onClientReady(clientfd, privateMsg);
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to notify client connected to %s",
+                            rc, mRequests[type]->getName());
+                    }
                 }
             }
 
             if (SUCCEED(rc)) {
-                bool requested = mCtl.requested(type);
-                if (!requested) {
-                    LOGE(mModule, "Request not requested, shouldn't be here");
-                    rc = BAD_PROTOCAL;
+                if (!requested(type)) {
+                    rc = replyClientRequestNotRequested();
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to reply client not requested msg, %d", rc);
+                    }
                 }
             }
 
-            if (SUCCEED(rc)) {
-                rc = mRequests[type]->setSocketFd(clientfd);
-                if (!SUCCEED(rc) && rc != JUMP_DONE) {
-                    LOGE(mModule, "Failed to set socket fd %d to %s",
-                        clientfd, mRequests[type]->getName());
-                }
-            }
-
-            if (SUCCEED(rc)) {
-                rc = mRequests[type]->onClientReady();
-                if (!SUCCEED(rc)) {
-                    LOGE(mModule, "Failed to notify client connected to %s",
-                        rc, mRequests[type]->getName());
-                }
-            }
         } while(rc != USER_ABORTED);
    }
 
     return rc;
 }
 
-int32_t ServerCore::convertToRequestType(
-    char *msg, RequestType *type)
+int32_t ServerCore::shareOverallControl()
 {
     int32_t rc = NO_ERROR;
-    int32_t value = atoi(msg + strlen(SOCKET_CLIENT_CONNECT_TYPE) + 1);
+    int32_t clientfd = mOverallControlFd;
 
-    if (value < 0) {
-        *type = REQUEST_TYPE_MAX_INVALID;
-        LOGE(mModule, "Invalid msg, %s", msg);
-        rc = PARAM_INVALID;
-    } else {
-        *type = ::voyager::convertToRequestType(value);
+    if (SUCCEED(rc)) {
+        rc = mSS.sendMsg(SOCKET_SEND_SHARE_OVERALL_CONTROL,
+            strlen(SOCKET_SEND_SHARE_OVERALL_CONTROL));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d", mSocketMsg, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mSocketMsg[0] = '\0';
+        rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_REPLY_OVERALL_CONTROL)) {
+            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSS.sendFd(clientfd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send fd %d to client, %d", clientfd, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mSocketMsg[0] = '\0';
+        rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_DONE_OVERALL_CONTROL)) {
+            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
+            rc = BAD_PROTOCOL;
+        }
     }
 
     return rc;
 }
 
-int32_t ServerCore::enableCachedRequests()
+int32_t ServerCore::replyClientRequestNotRequested()
 {
     int32_t rc = NO_ERROR;
 
-    for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
-        if (mCachedRequest[i]) {
-            LOGD(mModule, "Enable cached request %d", i);
-            rc = request(::voyager::convertToRequestType(i));
-            if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to create cached request %d", rc);
-            } else {
-                mCachedRequest[i] = false;
+    if (SUCCEED(rc)) {
+        rc = mSS.sendMsg(SOCKET_SERVER_REPLY_REQUEST_NO,
+            strlen(SOCKET_SERVER_REPLY_REQUEST_NO));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d",
+                SOCKET_SERVER_REPLY_REQUEST_NO, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mSocketMsg[0] = '\0';
+        rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_CLIENT_SEND_REQUEST_DONE)) {
+            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    return rc;
+}
+
+int32_t ServerCore::revealRequestTypeAndPrivateArgFromMsg(
+    char *msg, RequestType &type, std::string &privateArg)
+{
+    int32_t rc = NO_ERROR;
+    std::vector<std::string> words;
+    std::string typeStr;
+    std::string privateMsgStr;
+
+    if (SUCCEED(rc)) {
+        type = REQUEST_TYPE_MAX_INVALID;
+        privateArg = "";
+    }
+
+    if (SUCCEED(rc)) {
+        std::string str = msg;
+        std::regex wsre(" ");
+        std::vector<std::string> _words(
+            std::sregex_token_iterator(str.begin(), str.end(), wsre, -1),
+            std::sregex_token_iterator());
+        _words.erase(
+            std::remove_if(
+                _words.begin(), _words.end(),
+                [](std::string const &s) { return s.empty(); }),
+                _words.end());
+        words = _words;
+    }
+
+    if (SUCCEED(rc)) {
+        bool first = true;
+        for (auto &&word : words) {
+            if (word[0] == "<" &&
+                word[word.length() - 1] == ">") {
+                if (first) {
+                    typeStr = word;
+                    first = false;
+                } else {
+                    privateMsgStr = word;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        int32_t value = atoi(typeStr.c_str());
+        if (!checkValid(static_cast<RequestType>(value)) ||
+            privateMsgStr == "") {
+            LOGE(mModule, "Failed to convert msg to request type, %d", value);
+            rc = PARAM_INVALID;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        type = atoi(typeStr.c_str());
+        privateArg = privateMsg;
+    }
+
+    return rc;
+}
+
+int32_t ServerCore::enableAllRequestedRequests()
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!mClientReady) {
+            LOGE(mModule, "Client not ready, abort.");
+            rc = NOT_INITED;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        for (int32_t i = 0; i < ARRAYSIZE(mCachedRequest); i++) {
+            if (mCachedRequest[i]) {
+                rc = request(static_cast<RequestType>(i));
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to create cached %s request %d",
+                        getRequestName(static_cast<RequestType>(i)), rc);
+                }
             }
         }
     }
@@ -269,10 +384,20 @@ int32_t ServerCore::enableCachedRequests()
     return rc;
 }
 
+bool ServerCore::validFd(int32_t fd)
+{
+    return fd > 0;
+}
+
+bool ServerCore::requested(RequestType type)
+{
+    return NOTNULL(mRequests[type]);
+}
+
 int32_t ServerCore::exitServerLoop()
 {
     int32_t rc = mSS.cancelWaitConnect();
-    if (!SUCCEED(rc)) {
+    if (FAILED(rc)) {
         LOGE(mModule, "Failed to cancel wait client");
     }
 
@@ -291,20 +416,8 @@ int32_t ServerCore::destruct()
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
-            rc = mCtl.setRequest(
-                ::voyager::convertToRequestType(i), DISABLE_REQUEST);
-            if (!SUCCEED(rc)) {
-                final |= rc;
-                LOGE(mModule, "Failed to cancel request %d", i);
-                RESETRESULT(rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
         rc = exitServerLoop();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             final |= rc;
             LOGE(mModule, "Failed to abort run once thread");
             RESETRESULT(rc);
@@ -315,14 +428,14 @@ int32_t ServerCore::destruct()
         for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
             if (NOTNULL(mRequests[i])) {
                 rc = mRequests[i]->abort();
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     final |= rc;
                     LOGE(mModule, "Failed to abort request handler %s",
                         mRequests[i]->getName());
                     RESETRESULT(rc);
                 }
                 rc = mRequests[i]->destruct();
-                if (!SUCCEED(rc)) {
+                if (FAILED(rc)) {
                     final |= rc;
                     LOGE(mModule, "Failed to destruct request handler %s",
                         mRequests[i]->getName());
@@ -335,7 +448,7 @@ int32_t ServerCore::destruct()
 
     if (SUCCEED(rc)) {
         rc = mSS.destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             final |= rc;
             LOGE(mModule, "Failed to destruct socket state machine, %d", rc);
             RESETRESULT(rc);
@@ -344,7 +457,7 @@ int32_t ServerCore::destruct()
 
     if (SUCCEED(rc)) {
         rc = mCb.destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             final |= rc;
             LOGE(mModule, "Failed to destruct callback thread, %d", rc);
             RESETRESULT(rc);
@@ -354,54 +467,63 @@ int32_t ServerCore::destruct()
     if (SUCCEED(rc)) {
         if (NOTNULL(mThreads)) {
             mThreads->removeInstance();
-            mThreads = NULL;
+            mThreads = nullptr;
         }
     }
 
     if (SUCCEED(rc)) {
-        if (NOTNULL(mCtlMem)) {
-            rc = mBuffer.release(mCtlMem);
-            if (!SUCCEED(rc)) {
-                final |= rc;
-                LOGE(mModule, "Failed to release ion buf, %d", rc);
-                RESETRESULT(rc);
-            }
+        if (NOTNULL(mOverallControl)) {
+            mOverallControl->removeInstance();
         }
     }
 
-    if (SUCCEED(rc)) {
-        if (NOTNULL(mCtlMem)) {
-            // control memory freed by munmap() call
-            mCtlMem = NULL;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mBuffer.clear_all();
-        rc = mBuffer.deinit();
-        if (!SUCCEED(rc)) {
-            final |= rc;
-            LOGE(mModule, "Failed to deinit ion buf mgr, %d", rc);
-            RESETRESULT(rc);
-        }
-    }
-
-    if (!SUCCEED(final)) {
-        LOGE(mModule, " core destructed with error %d", final);
+    if (FAILED(final)) {
+        LOGE(mModule, "Server core destructed with error %d", final);
     } else {
-        LOGD(mModule, " core destructed");
+        LOGD(mModule, "Server core destructed");
     }
 
     return rc;
 }
 
+int32_t ServerCore::request(RequestType type)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!checkValid(type)) {
+            LOGE(mModule, "Invalid request type %d", type);
+            rc = PARAM_INVALID;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!mClientReady) {
+            mCachedRequest[type] = true;
+            LOGD(mModule, "Client not ready, request %s cached.",
+                getRequestName(type));
+         }
+    }
+
+    if (SUCCEED(rc)) {
+        if (mClientReady) {
+            rc = createRequestHandler(type);
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to create request %d", type);
+            }
+        }
+    }
+
+    return rc
+}
+
 int32_t ServerCore::createRequestHandler(RequestType type)
 {
     int32_t rc = NO_ERROR;
-    RequestHandler *requestHandler = NULL;
+    RequestHandler *requestHandler = nullptr;
 
     if (SUCCEED(rc)) {
-        if (NOTNULL(mRequests[type])) {
+        if (requested(type))) {
             LOGI(mModule, "%s alreay requested",
                 mRequests[type]->getName());
             rc = ALREADY_EXISTS;
@@ -418,100 +540,49 @@ int32_t ServerCore::createRequestHandler(RequestType type)
 
     if (SUCCEED(rc)) {
         rc = requestHandler->construct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to const request handler, %d", rc);
         } else {
             mRequests[type] = requestHandler;
+            mCachedRequest[type] = false;
         }
     }
 
-    if (SUCCEED(rc)) {
-        rc = setRequestedMark(type, ENABLE_REQUEST);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set enable request %d "
-                "for client, %d", type, rc);
-        }
-    }
-
-    if (!SUCCEED(rc)) {
-        if (ISNULL(requestHandler)) {
-            mRequests[type] = NULL;
+    if (FAILED(rc)) {
+        if (NOTNULL(requestHandler)) {
+            requestHandler->destruct();
             SECURE_DELETE(requestHandler);
+            mRequests[type] = nullptr;
         }
     }
 
     return rc;
 }
 
-int32_t ServerCore::request(RequestType type)
+int32_t ServerCore::abort(RequestType type)
 {
     int32_t rc = NO_ERROR;
+    RequestHandlerIntf *requestHandler = nullptr;
 
     if (SUCCEED(rc)) {
-        type = getRequestType(type);
-        if (type == REQUEST_TYPE_MAX_INVALID) {
+        if (!checkValid(type)) {
             LOGE(mModule, "Invalid request type %d", type);
             rc = PARAM_INVALID;
         }
     }
 
     if (SUCCEED(rc)) {
-        if (!mClientReady) {
-            mCachedRequest[type] = true;
-            LOGD(mModule, "Client not ready, request %d cached.", type);
-            rc = JUMP_DONE;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = createRequestHandler(type);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to create request %d", type);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mCtl.setRequest(type, ENABLE_REQUEST);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to enable request %d", rc);
-        }
-    }
-
-    return RETURNIGNORE(rc, JUMP_DONE);
-}
-
-int32_t ServerCore::abort(RequestType type)
-{
-    int32_t rc = NO_ERROR;
-    RequestHandlerIntf *requestHandler = NULL;
-
-    if (SUCCEED(rc)) {
+        mCachedRequest[type] = false;
         if (!requested(type)) {
-            LOGI(mModule, "%d not requested", type);
+            LOGD(mModule, "%d not requested", type);
             rc = NOT_INITED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = setRequestedMark(type, DISABLE_REQUEST);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set disable request %d "
-                "for client, %d", type, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mCtl.resetCtrlMem(type);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to reset memory type %d, %d",
-                type, rc);
         }
     }
 
     if (SUCCEED(rc)) {
         requestHandler = mRequests[type];
         rc = requestHandler->abort();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to exit request handler %s, %d",
                 requestHandler->getName(), rc);
         }
@@ -519,7 +590,7 @@ int32_t ServerCore::abort(RequestType type)
 
     if (SUCCEED(rc)) {
         rc = requestHandler->destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to destruct request handler %s, %d",
                 requestHandler->getName(), rc);
         }
@@ -527,86 +598,155 @@ int32_t ServerCore::abort(RequestType type)
 
     if (SUCCEED(rc)) {
         SECURE_DELETE(requestHandler);
-        mRequests[type] = NULL;
+        mRequests[type] = nullptr;
     }
 
     return RETURNIGNORE(rc, NOT_INITED);
 }
 
-bool ServerCore::requested(RequestType type)
+template <typename T>
+int32_t ServerCore::request(T cbFunc, RequestType type)
 {
     int32_t rc = NO_ERROR;
-    bool result = false;
 
     if (SUCCEED(rc)) {
-        type = getRequestType(type);
-        if (type == REQUEST_TYPE_MAX_INVALID) {
-            LOGE(mModule, "Invalid request type %d", type);
-            rc = PARAM_INVALID;
-        } else {
-            result = mCtl.requested(type);
+        rc = mCb.set(cbFunc);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to set cb thread, %d", rc);
         }
     }
 
-    return result;
+    if (SUCCEED(rc)) {
+        if (NOTNULL(cbFunc)) {
+            rc = request(type);
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to request %s, %d",
+                    getRequestName(type), rc);
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (ISNULL(cbFunc)) {
+            rc = abort(type);
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to abort %s, %d",
+                    getRequestName(type), rc);
+            }
+        }
+    }
+
+    return rc;
 }
 
-int32_t ServerCore::enqueue(RequestType type, int32_t id)
+int32_t ServerCore::request(DataCbFunc dataCbFunc)
+{
+    return request<DataCbFunc>(dataCbFunc, DATA);
+}
+
+int32_t ServerCore::request(FdCbFunc fdCbFunc)
+{
+    return request<FdCbFunc>(fdCbFunc, FD);
+}
+
+int32_t ServerCore::request(FrameCbFunc frameCbFunc)
+{
+    return request<FrameCbFunc>(frameCbFunc, FRAME);
+}
+
+int32_t ServerCore::request(EventCbFunc eventCbFunc)
+{
+    return request<EventCbFunc>(eventCbFunc, EVENT);
+}
+
+int32_t ServerCore::enqueue(void *dat)
 {
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        type = getRequestType(type);
-        if (type == REQUEST_TYPE_MAX_INVALID) {
-            LOGE(mModule, "Invalid request type %d", type);
-            rc = PARAM_INVALID;
+        if (!requested(DATA)) {
+            LOGE(mModule, "Data request not created or aborted, "
+                "enqueue failed.");
+            rc = NOT_EXIST;
         }
     }
 
     if (SUCCEED(rc)) {
-        if (ISNULL(mRequests[type])) {
-            LOGW(mModule, "Request not created, should't be here.");
-            rc = NOT_REQUIRED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        bool requested = mCtl.requested(type);
-        if (!requested) {
-            LOGE(mModule, "Request not requested, shouldn't be here");
-            rc = NOT_REQUIRED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mRequests[type]->enqueue(id);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to enqueue %d to %s", id,
-                mRequests[type]->getName());
+        rc = mRequests[DATA]->enqueue(dat);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to enqueue %p to %s",
+                dat, mRequests[DATA]->getName());
         }
     }
 
     return RETURNIGNORE(rc, NOT_REQUIRED);
 }
 
-int32_t ServerCore::setCallback(RequestCbFunc requestCb)
+
+int32_t ServerCore::enqueue(int32_t fd)
 {
-    return mCb.setCallback(requestCb);
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!requested(FD)) {
+            LOGE(mModule, "Fd request not created or aborted, "
+                "enqueue failed.");
+            rc = NOT_EXIST;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mRequests[FD]->enqueue(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to enqueue fd %d to %s",
+                fd, mRequests[FD]->getName());
+        }
+    }
+
+    return RETURNIGNORE(rc, NOT_REQUIRED);
 }
 
-int32_t ServerCore::setCallback(EventCbFunc eventCb)
+int32_t ServerCore::enqueue(void *dat, int32_t format)
 {
-    return mCb.setCallback(eventCb);
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!requested(FRAME)) {
+            LOGE(mModule, "Frame request not created or aborted, "
+                "enqueue failed.");
+            rc = NOT_EXIST;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mRequests[FRAME]->enqueue(dat, format);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to enqueue fd %p %d to %s",
+                dat, format, mRequests[FRAME]->getName());
+        }
+    }
+
+    return RETURNIGNORE(rc, NOT_REQUIRED);
 }
 
-int32_t ServerCore::setCallback(DataCbFunc dataCb)
+int32_t ServerCore::cancel(RequestType type)
 {
-    return mCb.setCallback(dataCb);
+    return abort(type);
 }
 
-int32_t ServerCore::send(RequestType type, int32_t id, void *head, void *dat)
+int32_t ServerCore::send(void *dat, int64_t len)
 {
-    return mCb.send(type, id, head, dat);
+    return mCb.send(dat, len);
+}
+
+int32_t ServerCore::send(int32_t fd, int64_t len)
+{
+    return mCb.send(fd, len);
+}
+
+int32_t ServerCore::send(void *dat, int64_t len, int32_t format)
+{
+    return mCb.send(dat, len, format);
 }
 
 int32_t ServerCore::send(int32_t event, int32_t arg1, int32_t arg2)
@@ -614,65 +754,16 @@ int32_t ServerCore::send(int32_t event, int32_t arg1, int32_t arg2)
     return mCb.send(event, arg1, arg2);
 }
 
-int32_t ServerCore::send(int32_t type, void *data, int32_t size)
-{
-    return mCb.send(type, data, size);
-}
-
-int32_t ServerCore::allocateBuf(void **buf, int32_t len, int32_t *fd)
-{
-    return mBuffer.allocate(buf, len, fd);
-}
-
-int32_t ServerCore::releaseBuf(void *buf)
-{
-    return mBuffer.release(buf);
-}
-
-int32_t ServerCore::setMemStatus(RequestType type, int32_t fd, bool fresh)
-{
-    return mCtl.setMemStatus(type, fd, fresh);
-}
-
-int32_t ServerCore::getMemStatus(RequestType type, int32_t fd, bool *fresh)
-{
-    return mCtl.getMemStatus(type, fd, fresh);
-}
-
-int32_t ServerCore::setMemSize(RequestType type, int32_t size)
-{
-    return mCtl.setMemSize(type, size);
-}
-
-int32_t ServerCore::getMemSize(RequestType type, int32_t *size)
-{
-    return mCtl.getMemSize(type, size);
-}
-
-int32_t ServerCore::addMemory(RequestType type, int32_t clientfd, bool fresh)
-{
-    return mCtl.addMemory(type, clientfd, fresh);
-}
-
-int32_t ServerCore::setRequestedMark(RequestType type, bool enable)
-{
-    return mCtl.setRequest(type, enable);
-}
-
-int32_t ServerCore::getHeader(Header &header)
-{
-    return mCtl.getHeader(header);
-}
-
 ServerCore::ServerCore() :
     mConstructed(false),
-    mModule(MODULE_VOYAGER_CORE),
     mClientReady(false),
-    mCtlFd(-1),
-    mCtlMem(NULL)
+    mOverallControl(nullptr),
+    mOverallControlFd(-1),
+    mThreads(nullptr)
 {
+    mSocketMsg[0] = '\0';
     for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
-        mRequests[i] = NULL;
+        mRequests[i] = nullptr;
         mCachedRequest[i] = false;
     }
 }
@@ -682,44 +773,6 @@ ServerCore::~ServerCore()
     if (mConstructed) {
         destruct();
     }
-}
-
-};
-
-#include "PreviewServer.h"
-#include "YuvPictureServer.h"
-#include "BayerPictureServer.h"
-#include "EventServer.h"
-#include "DataServer.h"
-
-namespace voyager {
-
-RequestHandler *ServerCore::createHandler(RequestType type)
-{
-    RequestHandler *request = NULL;
-
-    switch (type) {
-        case PREVIEW_NV21: {
-            request = new PreviewServer(this);
-        } break;
-        case PICTURE_NV21: {
-            request = new YuvPictureServer(this);
-        } break;
-        case PICTURE_BAYER: {
-            request = new BayerPictureServer(this);
-        } break;
-        case EXTENDED_EVENT: {
-            request = new EventServer(this);
-        } break;
-        case CUSTOM_DATA: {
-            request = new DataServer(this);
-        } break;
-        default: {
-            LOGE(mModule, "Invalid request type %d", type);
-        } break;
-    };
-
-    return request;
 }
 
 };

@@ -41,6 +41,7 @@ enum err_raeson {
     USER_ABORTED,
     JUMP_DONE,
     INTERNAL_ERROR,
+    BAD_PROTOCOL,
     NOT_NEEDED,
     SYS_ERROR,
     NOT_MATCH,

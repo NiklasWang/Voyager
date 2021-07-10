@@ -3,12 +3,14 @@
 
 #define SERVER_SOCKET_PATH         "/tmp/voyager"
 
+#define SERVER_SOCKET_DEFAULT_NAME "default_socket"
+
 #define SERVER_PULL_CLIENT_TIMEOUT 100 // ms
 
 #define SERVER_POLL_DATA_TIMEOUT   200
 
 #define CLIENT_POLL_DATA_TIMEOUT   200
 
-#define MAX_CLIENT_ALLOWED         20
+#define MAX_CLIENT_ALLOWED         16
 
 #endif
