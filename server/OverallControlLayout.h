@@ -1,3 +1,6 @@
+#ifndef _OVERALL_CONTROL_LAYOUT_H_
+#define _OVERALL_CONTROL_LAYOUT_H_
+
 #include <stdint.h>
 
 #define IP_MAX_LEN             15
@@ -49,4 +52,6 @@ struct OverallControlLayout {
 };
 
 };
+
+#endif
 

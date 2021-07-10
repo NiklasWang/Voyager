@@ -415,11 +415,11 @@ int32_t OverallControl::searchClient(const char *ip, int32_t port, int32_t &inde
     return rc;
 }
 
-void OverallControl::setLayout(const OverallControlLayout *layout)
+void OverallControl::setLayout(void *layout)
 {
     ASSERT_LOG(mModule, ISNULL(layout), "Layout can't be nullptr");
 
-    mLayout = layout;
+    mLayout = static_cast<OverallControlLayout *>(layout);
 
     return;
 }
