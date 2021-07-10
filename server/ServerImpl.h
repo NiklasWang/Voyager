@@ -2,7 +2,7 @@
 #define _VOYAGER_SERVER_IMPL_H_
 
 #include "common.h"
-#include "ServerIntf.h"
+#include "Server.h"
 #include "SyncType.h"
 
 namespace voyager {
@@ -14,30 +14,18 @@ class ServerImpl :
     public ServerIntf,
     public noncopyable  {
 public:
-    int32_t request(RequestType type) override;
-    int32_t abort(RequestType type) override;
-    int32_t enqueue(RequestType type, int32_t id) override;
-    int32_t setCallback(RequestCbFunc requestCb);
-    int32_t setCallback(EventCbFunc eventCb);
-    int32_t setCallback(DataCbFunc dataCb);
+    int32_t request(DataCbFunc dataCbFunc);
+    int32_t enqueue(void *dat);
+    int32_t request(FdCbFunc fdCbFunc);
+    int32_t enqueue(int32_t fd);
+    int32_t request(FrameCbFunc frameCbFunc);
+    int32_t enqueue(void *dat, int32_t format);
+    int32_t request(EventCbFunc eventCbFunc);
+    int32_t cancel(RequestType type);
 
 private:
-    struct BufferInfo {
-        RequestType type;
-        int32_t id;
-    };
-
-    struct CbInfo {
-        RequestCbFunc requestCb;
-        EventCbFunc   eventCb;
-        DataCbFunc    dataCb;
-    };
-
-private:
-    int32_t coreRequest(void *type);
-    int32_t coreAbort(void *type);
-    int32_t coreEnqueue(void *info);
-    int32_t coreSetCallback(void *func);
+    int32_t coreRequest(void *request);
+    int32_t coreAbort(void *enqueue);
 
 public:
     ServerImpl();
@@ -48,10 +36,34 @@ public:
 private:
     enum TaskType {
         TYPE_REQUEST,
-        TYPE_ABORT,
         TYPE_ENQUEUE,
-        TYPE_SET_CB,
         TYPE_MAX_INVALID,
+    };
+
+    struct RequestInfo {
+        RequestType type;
+        union Cb {
+            DataCbFunc  dataCb;
+            FdCbFunc    fdCb;
+            FrameCbFunc frameCb;
+            EventCbFunc eventCb;
+        } cb;
+    };
+
+    struct EnqueueInfo {
+        RequestType type;
+        union Object {
+            struct Data {
+                void *ptr;
+            } data;
+            struct Fd {
+                int32_t fd;
+            } fd;
+            struct Frame {
+                void   *ptr;
+                int32_t format;
+            } frame;
+        } object;
     };
 
 public:
@@ -75,7 +87,7 @@ public:
         explicit TaskBase(
             TaskType  _type = TYPE_MAX_INVALID,
             sync_type _sync = SYNC_TYPE) :
-            type(_type), sync(_sync), module(MODULE_VOYAGER_IMPL) {}
+            type(_type), sync(_sync), module(MODULE_SERVER_IMPL) {}
         virtual ~TaskBase() {}
     };
 
@@ -106,7 +118,7 @@ private:
     ModuleType    mModule;
     uint32_t      mTaskCnt;
     ThreadPoolEx *mThreads;
-    Core   *mCore;
+    ServerCore   *mCore;
     static const PushToThreadFunc gAddThreadTaskFunc[];
 };
 
