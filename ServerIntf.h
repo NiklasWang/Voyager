@@ -23,7 +23,6 @@ public:
     virtual int32_t cancel(RequestType type) = 0;
 
 public:
-    ServerIntf(const char *name, bool enableOverallControl);
     virtual ~ServerIntf();
 };
 

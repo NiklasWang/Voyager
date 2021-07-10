@@ -7,7 +7,7 @@ namespace voyager {
     ({ \
         int32_t __rc = NO_ERROR; \
         if (ISNULL(mImpl)) { \
-            LOGD(MODULE_VOYAGER, " impl not created"); \
+            LOGD(MODULE_SERVER, " impl not created"); \
             __rc = NOT_INITED; \
         } \
         __rc; \
@@ -19,16 +19,16 @@ namespace voyager {
         if (ISNULL(mImpl)) { \
             mImpl = new ServerImpl(); \
             if (ISNULL(mImpl)) { \
-                LOGE(MODULE_VOYAGER, "Failed to create  impl"); \
-                __rc = NOT_INITED; \
+                LOGE(MODULE_SERVER, "Failed to create impl."); \
+                __rc = NO_MEMORY; \
             } else { \
                 __rc = mImpl->construct(); \
-                if (!SUCCEED(__rc)) { \
-                    LOGE(MODULE_VOYAGER, "Failed to construct  impl"); \
+                if (FAILED(__rc)) { \
+                    LOGE(MODULE_SERVER, "Failed to construct  impl"); \
                     delete mImpl; \
                     mImpl = NULL; \
                 } else { \
-                    LOGI(MODULE_VOYAGER, " impl constructed."); \
+                    LOGI(MODULE_SERVER, " impl constructed."); \
                 } \
             } \
         } \
@@ -45,50 +45,64 @@ namespace voyager {
         __rc; \
     })
 
-int32_t Server::request(RequestType type)
+int32_t Server::request(DataCbFunc dataCbFunc)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->request(type) : rc;
+    return SUCCEED(rc) ? mImpl->request(dataCbFunc) : rc;
 }
 
-int32_t Server::abort(RequestType type)
+int32_t Server::enqueue(void *dat)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->abort(type) : rc;
+    return SUCCEED(rc) ? mImpl->enqueue(dat) : rc;
 }
 
-int32_t Server::enqueue(RequestType type, int32_t id)
+int32_t Server::request(FdCbFunc fdCbFunc)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->enqueue(type, id) : rc;
+    return SUCCEED(rc) ? mImpl->request(fdCbFunc) : rc;
 }
 
-int32_t Server::setCallback(RequestCbFunc requestCb)
+int32_t Server::enqueue(int32_t fd)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->setCallback(requestCb) : rc;
+    return SUCCEED(rc) ? mImpl->enqueue(fd) : rc;
 }
 
-int32_t Server::setCallback(EventCbFunc eventCb)
+int32_t Server::request(FrameCbFunc frameCbFunc)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->setCallback(eventCb) : rc;
+    return SUCCEED(rc) ? mImpl->request(frameCbFunc) : rc;
 }
 
-int32_t Server::setCallback(DataCbFunc dataCb)
+int32_t Server::enqueue(void *dat, int32_t format)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->setCallback(dataCb) : rc;
+    return SUCCEED(rc) ? mImpl->enqueue(dat, format) : rc;
 }
 
-Server::Server() :
-    mImpl(NULL)
+int32_t Server::request(EventCbFunc eventCbFunc)
+{
+    int32_t rc = CONSTRUCT_IMPL_ONCE();
+    return SUCCEED(rc) ? mImpl->request(eventCbFunc) : rc;
+}
+
+int32_t Server::cancel(RequestType type)
+{
+    int32_t rc = CONSTRUCT_IMPL_ONCE();
+    return SUCCEED(rc) ? mImpl->cancel(type) : rc;
+}
+
+Server::Server(const char *name, bool enableOverallControl) :
+    mName(name),
+    mEnableOverallControl(enableOverallControl),
+    mImpl(nullptr)
 {
 }
 
 Server::~Server()
 {
-    if (!ISNULL(mImpl)) {
+    if (NOTNULL(mImpl)) {
         mImpl->destruct();
         delete mImpl;
         mImpl = NULL;
