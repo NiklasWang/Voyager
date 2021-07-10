@@ -1,6 +1,7 @@
 #include "FSBufferMgr.h"
 
-#define FS_BUFFER_PATH "/tmp"
+#define FS_BUFFER_PATH      "/tmp"
+#define FS_BUFFER_EXTENSION ".share"
 
 namespace voyager {
 
@@ -88,7 +89,7 @@ int32_t FSBufferMgr::allocate(Buffer *buf, int64_t len)
         fsName += std::to_string(len);
         fsName += "_";
         fsName += TimeUtils::getDateTime();
-        fsName += ".share";
+        fsName += FS_BUFFER_EXTENSION;
     }
 
     if (SUCCEED(rc)) {
@@ -147,7 +148,8 @@ int32_t FSBufferMgr::removeNotOccupiedFiles(const std::string &basePath)
                     }
                 }
             } else if (dp->d_type & DT_REG) {
-                if (access(path, R_OK | W_OK) != 0) {
+                if (path.rfind(FS_BUFFER_EXTENSION) != std::string::npos &&
+                    access(path, R_OK | W_OK) == 0) {
                     files.push_back(path);
                 }
             }
@@ -302,6 +304,12 @@ int32_t FSBufferMgr::release(Buffer *buf)
             close(buf->fd);
         } else {
             rc = PARAM_INVALID;
+        }
+        if (buf->fsName != "") {
+            // Just have a try
+            // May failed since shared to other process
+            // RemoveNotOccupiedFiles() will take care it in this case
+            unlink(fsName.c_str());
         }
     }
 
