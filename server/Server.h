@@ -12,14 +12,14 @@ class ServerImpl;
 class Server :
     public ServerIntf {
 public:
-    virtual int32_t request(DataCbFunc dataCbFunc) = 0;
-    virtual int32_t enqueue(void *dat) = 0;
-    virtual int32_t request(FdCbFunc fdCbFunc) = 0;
-    virtual int32_t enqueue(int32_t fd) = 0;
-    virtual int32_t request(FrameCbFunc frameCbFunc) = 0;
-    virtual int32_t enqueue(void *dat, int32_t format) = 0;
-    virtual int32_t request(EventCbFunc eventCbFunc) = 0;
-    virtual int32_t cancel(RequestType type) = 0;
+    virtual int32_t request(DataCbFunc dataCbFunc) override;
+    virtual int32_t enqueue(void *dat) override;
+    virtual int32_t request(FdCbFunc fdCbFunc) override;
+    virtual int32_t enqueue(int32_t fd) override;
+    virtual int32_t request(FrameCbFunc frameCbFunc) override;
+    virtual int32_t enqueue(void *dat, int32_t format) override;
+    virtual int32_t request(EventCbFunc eventCbFunc) override;
+    virtual int32_t cancel(RequestType type) override;
 
 public:
     Server(const char *name, bool enableOverallControl = true);

@@ -87,11 +87,11 @@ private:
     void updateToNewStatus(status state);
 
 public:
-    SocketServerStateMachine(const char *socketName);
+    SocketServerStateMachine();
     virtual ~SocketServerStateMachine();
     SocketServerStateMachine(const SocketServerStateMachine &rhs);
     SocketServerStateMachine &operator=(const SocketServerStateMachine &rhs);
-    int32_t construct();
+    int32_t construct(const char *socketName = SERVER_SOCKET_DEFAULT_NAME);
     int32_t destruct();
 
 private:

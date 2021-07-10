@@ -6,10 +6,10 @@
 namespace voyager {
 
 ServerImpl::ServerImpl() :
+    Identifier(MODULE_SERVER_IMPL, "ServerImpl", "1.0.0"),
     mConstructed(false),
-    mModule(MODULE_SERVER_IMPL),
     mTaskCnt(0),
-    mCore(NULL)
+    mCore(NULL),
 {
     LOGI(mModule, "%s %s initializing...", PROJNAME, VERSION);
 }
@@ -21,7 +21,7 @@ ServerImpl::~ServerImpl()
     }
 }
 
-int32_t ServerImpl::construct()
+int32_t ServerImpl::construct(const std::string &name, bool enableOverallControl)
 {
     int32_t rc = NO_ERROR;
 
@@ -38,7 +38,7 @@ int32_t ServerImpl::construct()
     }
 
     if (SUCCEED(rc)) {
-        rc = mCore->construct();
+        rc = mCore->construct(name, enableOverallControl);
         if (!SUCCEED(rc)) {
             LOGE(mModule, "Failed to construct core.");
         }

@@ -22,7 +22,7 @@ namespace voyager {
                 LOGE(MODULE_SERVER, "Failed to create impl."); \
                 __rc = NO_MEMORY; \
             } else { \
-                __rc = mImpl->construct(); \
+                __rc = mImpl->construct(mName, mEnableOverallControl); \
                 if (FAILED(__rc)) { \
                     LOGE(MODULE_SERVER, "Failed to construct  impl"); \
                     delete mImpl; \

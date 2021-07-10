@@ -119,8 +119,7 @@ int32_t SocketServerStateMachine::cancelWaitMsg()
     return NO_ERROR;
 }
 
-SocketServerStateMachine::SocketServerStateMachine(
-    const char *socketName) :
+SocketServerStateMachine::SocketServerStateMachine() :
     Identifier(MODULE_SOCKET, "SocketServerStateMachine", "1.0.0"),
     mConstructed(false),
     mOwnServer(false),
@@ -129,7 +128,6 @@ SocketServerStateMachine::SocketServerStateMachine(
     mStatus(STATUS_UNINITED),
     mWaitingMsg(false),
     mCancelConnect(false),
-    mSocketName(socketName),
     mThread(getModuleName(mModule))
 {
 }
@@ -141,9 +139,10 @@ SocketServerStateMachine::~SocketServerStateMachine()
     }
 }
 
-int32_t SocketServerStateMachine::construct()
+int32_t SocketServerStateMachine::construct(const char *socketName)
 {
     int32_t rc = NO_ERROR;
+    mSocketName = socketName;
 
     if (mConstructed) {
         rc = ALREADY_INITED;

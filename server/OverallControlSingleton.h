@@ -5,7 +5,7 @@
 
 #include "OverallControlAllocator.h"
 
-namespace pandora {
+namespace voyager {
 
 class OverallControlSingleton :
     public OverallControlAllocator {

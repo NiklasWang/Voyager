@@ -77,9 +77,9 @@ private:
     void updateToNewStatus(status state);
 
 public:
-    SocketClientStateMachine(const char *socketName);
+    SocketClientStateMachine();
     virtual ~SocketClientStateMachine();
-    int32_t construct();
+    int32_t construct(const char *socketName = SERVER_SOCKET_DEFAULT_NAME);
     int32_t destruct();
 
 private:

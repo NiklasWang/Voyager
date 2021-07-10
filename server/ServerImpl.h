@@ -2,26 +2,28 @@
 #define _VOYAGER_SERVER_IMPL_H_
 
 #include "common.h"
-#include "Server.h"
+#include "ServerImpl.h"
 #include "SyncType.h"
 
 namespace voyager {
 
-class Core;
+class ServerCore;
 class ThreadPoolEx;
 
 class ServerImpl :
     public ServerIntf,
+    public Identifier,
     public noncopyable  {
 public:
-    int32_t request(DataCbFunc dataCbFunc);
-    int32_t enqueue(void *dat);
-    int32_t request(FdCbFunc fdCbFunc);
-    int32_t enqueue(int32_t fd);
-    int32_t request(FrameCbFunc frameCbFunc);
-    int32_t enqueue(void *dat, int32_t format);
-    int32_t request(EventCbFunc eventCbFunc);
-    int32_t cancel(RequestType type);
+
+    virtual int32_t request(DataCbFunc dataCbFunc) override;
+    virtual int32_t enqueue(void *dat) override;
+    virtual int32_t request(FdCbFunc fdCbFunc) override;
+    virtual int32_t enqueue(int32_t fd) override;
+    virtual int32_t request(FrameCbFunc frameCbFunc) override;
+    virtual int32_t enqueue(void *dat, int32_t format) override;
+    virtual int32_t request(EventCbFunc eventCbFunc) override;
+    virtual int32_t cancel(RequestType type) override;
 
 private:
     int32_t coreRequest(void *request);
@@ -30,7 +32,7 @@ private:
 public:
     ServerImpl();
     virtual ~ServerImpl();
-    int32_t construct();
+    int32_t construct(const std::string &name, bool enableOverallControl);
     int32_t destruct();
 
 private:
@@ -115,7 +117,6 @@ private:
 
 private:
     bool          mConstructed;
-    ModuleType    mModule;
     uint32_t      mTaskCnt;
     ThreadPoolEx *mThreads;
     ServerCore   *mCore;

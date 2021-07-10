@@ -81,14 +81,12 @@ bool SocketClientStateMachine::connected()
     return mServerFd != -1;
 }
 
-SocketClientStateMachine::SocketClientStateMachine(
-    const char *socketName) :
+SocketClientStateMachine::SocketClientStateMachine() :
     Identifier(MODULE_SOCKET, "SocketClientStateMachine", "1.0.0"),
     mConstructed(false),
     mServerFd(-1),
     mStatus(STATUS_UNINITED),
     mCancelWait(false),
-    mSocketName(socketName),
     mThread(getModuleName(mModule))
 {
     pthread_mutex_init(&mMsgLock, NULL);
@@ -102,9 +100,10 @@ SocketClientStateMachine::~SocketClientStateMachine()
     pthread_mutex_destroy(&mMsgLock);
 }
 
-int32_t SocketClientStateMachine::construct()
+int32_t SocketClientStateMachine::construct(const char *socketName)
 {
     int32_t rc = NO_ERROR;
+    mSocketName = socketName;
 
     if (mConstructed) {
         rc = ALREADY_INITED;

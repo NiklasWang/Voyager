@@ -16,7 +16,7 @@ OverallControlSingleton *OverallControlSingleton::getInstance()
         if (ISNULL(gThis)) {
             gThis = new OverallControlSingleton();
             if (ISNULL(gThis)) {
-                LOGE(MODULE_OVERALL_CONTROL, "Failed to create Pandora sigleton.");
+                LOGE(MODULE_OVERALL_CONTROL, "Failed to create overall control sigleton.");
             }
         }
     }
