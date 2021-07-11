@@ -52,6 +52,7 @@
 namespace voyager {
 
 BufferMgr::BufferMgr() :
+    Identifier(MODULE_BUFFER_MANAGER, "BufferMgr", "1.0.0"),
     mMgr(NULL)
 {
 }

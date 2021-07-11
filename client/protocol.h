@@ -22,4 +22,12 @@
 
 #define SOCKET_CLIENT_SEND_REQUEST_DONE    "Client done."
 
+#define SOCKT_SERVER_RECEIVED              "Transfer OK."
+#define SOCKT_SERVER_FAILED_RECEIVE        "Transfer Failed."
+
+#define SOCKET_SERVER_PROCESSED            "Process OK."
+#define SOCKET_SERVER_PROCESS_FAILED       "Process Failed."
+
+#define SOCKET_CLIENT_EVENT_FORMAT         "Event:%EVENT%:%ARG1%:%ARG2%"
+
 #endif

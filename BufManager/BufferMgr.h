@@ -8,8 +8,10 @@ namespace voyager {
 
 class BufferMgr :
     public BufferMgrIntf,
+    public Identifier,
     public noncopyable  {
 public:
+
     virtual int32_t alloc(void **buf, int64_t len) override;
     virtual int32_t alloc(void **buf, int64_t len, int32_t *fd) override;
     virtual int32_t import(void **buf, int32_t fd, int64_t len) override;
