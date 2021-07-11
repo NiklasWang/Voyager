@@ -17,6 +17,15 @@ static const char *const gModuleName[] = {
     [MODULE_BUFFER_MANAGER]  = "buffer manager",
     [MODULE_ION_HELPER]      = "android ion helper",
     [MODULE_FS_HELPER]       = "fs helper",
+    [MODULE_REQUEST_HANDLER] = "request handler",
+    [MODULE_DATA_SERVER]     = "data server",
+    [MODULE_DATA_CLIENT]     = "data client",
+    [MODULE_FD_SERVER]       = "fd server",
+    [MODULE_FD_CLIENT]       = "fd client",
+    [MODULE_FRAME_SERVER]    = "frame server",
+    [MODULE_FRAME_CLIENT]    = "frame client",
+    [MODULE_EVENT_SERVER]    = "event server",
+    [MODULE_EVENT_CLIENT]    = "event client",
     [MODULE_MAX_INVALID]     = "max_invalid",
 };
 
@@ -33,6 +42,15 @@ static const char *const gModuleShortName[] = {
     [MODULE_BUFFER_MANAGER]  = "[ BUFM]",
     [MODULE_ION_HELPER]      = "[IONHP]",
     [MODULE_FS_HELPER]       = "[ FSHP]",
+    [MODULE_REQUEST_HANDLER] = "[   QH]",
+    [MODULE_DATA_SERVER]     = "[ DATS]",
+    [MODULE_DATA_CLIENT]     = "[ DATC]",
+    [MODULE_FD_SERVER]       = "[  FDS]",
+    [MODULE_FD_CLIENT]       = "[  FDC]",
+    [MODULE_FRAME_SERVER]    = "[FRAMS]",
+    [MODULE_FRAME_CLIENT]    = "[FRAMC]",
+    [MODULE_EVENT_SERVER]    = "[ EVTS]",
+    [MODULE_EVENT_CLIENT]    = "[ EVTC]",
     [MODULE_MAX_INVALID]     = "[INVAL]",
 };
 
