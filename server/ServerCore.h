@@ -13,7 +13,7 @@ namespace voyager {
 
 class ServerCore :
     public ServerIntf,
-    public CallbackThread,
+    public CallbackIntf,
     public Identifier,
     public noncopyable {
 public:

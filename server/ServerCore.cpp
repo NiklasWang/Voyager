@@ -191,6 +191,17 @@ int32_t ServerCore::startServerLoop()
 
             if (SUCCEED(rc)) {
                 if (requested(type)) {
+                    rc = mSS.sendMsg(SOCKET_SERVER_REPLY_REQUEST_OK,
+                        strlen(SOCKET_SERVER_REPLY_REQUEST_OK));
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to send msg %s to client, %d",
+                            SOCKET_SERVER_REPLY_REQUEST_OK, rc);
+                    }
+                }
+            }
+
+            if (SUCCEED(rc)) {
+                if (requested(type)) {
                     rc = mRequests[type]->onClientReady(clientfd, privateMsg);
                     if (FAILED(rc)) {
                         LOGE(mModule, "Failed to notify client connected to %s",
@@ -755,6 +766,7 @@ int32_t ServerCore::send(int32_t event, int32_t arg1, int32_t arg2)
 }
 
 ServerCore::ServerCore() :
+    Identifier(MODULE_SERVER_CORE, "ServerCore", "1.0.0"),
     mConstructed(false),
     mClientReady(false),
     mOverallControl(nullptr),
