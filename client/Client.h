@@ -1,6 +1,8 @@
 #ifndef _VOYAGER_CLIENT_H_
 #define _VOYAGER_CLIENT_H_
 
+#include <string>
+
 #include "ClientIntf.h"
 
 namespace voyager {
@@ -19,7 +21,7 @@ public:
     virtual bool    requested(RequestType type) override;
 
 public:
-    Client();
+    Client(const char *name);
     virtual ~Client();
 
 private:
@@ -28,6 +30,7 @@ private:
 
 private:
     ClientCore *mCore;
+    std::string mName;
 };
 
 };
