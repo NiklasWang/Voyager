@@ -17,6 +17,7 @@ class ServerCore :
     public Identifier,
     public noncopyable {
 public:
+
     virtual int32_t request(DataCbFunc dataCbFunc, SyncMode mode) override;
     virtual int32_t enqueue(void *dat) override;
     virtual int32_t request(FdCbFunc fdCbFunc, SyncMode mode) override;

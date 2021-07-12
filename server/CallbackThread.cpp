@@ -24,7 +24,7 @@ int32_t CallbackThread::send(void *dat, int64_t len)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {
-            LOGE(mModule, "Failed to send request, %d", rc);
+            LOGE(mModule, "Failed to send data, %d", rc);
         }
     }
 
@@ -52,7 +52,7 @@ int32_t CallbackThread::send(int32_t fd, int64_t len)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {
-            LOGE(mModule, "Failed to send request, %d", rc);
+            LOGE(mModule, "Failed to send fd, %d", rc);
         }
     }
 
@@ -80,7 +80,7 @@ int32_t CallbackThread::send(void *dat, int64_t len, int32_t format)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {
-            LOGE(mModule, "Failed to send data, %d", rc);
+            LOGE(mModule, "Failed to send frame, %d", rc);
         }
     }
 

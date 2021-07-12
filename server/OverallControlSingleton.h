@@ -10,6 +10,7 @@ namespace voyager {
 class OverallControlSingleton :
     public OverallControlAllocator {
 public:
+
     static OverallControlSingleton *getInstance();
     static uint32_t removeInstance();
 
