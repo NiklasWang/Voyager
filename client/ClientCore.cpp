@@ -1,14 +1,14 @@
 #include "BufferMgr.h"
 #include "SiriusClientCore.h"
 
-namespace sirius {
+namespace voyager {
 
 bool SiriusClientCore::kHeaderInited = false;
 Header SiriusClientCore::kHeader;
 
 SiriusClientCore::SiriusClientCore() :
     mConstructed(false),
-    mModule(MODULE_SIRIUS_CLIENT_CORE),
+    mModule(MODULE_VOYAGER_CLIENT_CORE),
     mConnected(false),
     mReady(false),
     mBufMgr(NULL)
@@ -74,7 +74,7 @@ int32_t SiriusClientCore::prepare()
 
     if (SUCCEED(rc)) {
         if (!kHeaderInited) {
-            LOGE(mModule, "Please update sirius client core first.");
+            LOGE(mModule, "Please update voyager client core first.");
             rc = NOT_INITED;
         }
     }

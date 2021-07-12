@@ -1,7 +1,7 @@
 #include "RequestHandlerClient.h"
 #include "MemMgmt.h"
 
-namespace sirius {
+namespace voyager {
 
 RequestHandlerClient::RequestHandlerClient(RequestType type, const char *name, uint32_t maxNum) :
     mConstructed(false),
@@ -156,7 +156,7 @@ int32_t RequestHandlerClient::prepare()
         if (!kCore.ready()) {
             rc = kCore.construct();
             if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to client sirius client core, %d", rc);
+                LOGE(mModule, "Failed to client voyager client core, %d", rc);
             }
         }
     }
@@ -165,7 +165,7 @@ int32_t RequestHandlerClient::prepare()
         if (!kCore.ready()) {
             rc = kCore.prepare();
             if (!SUCCEED(rc)) {
-                LOGI(mModule, "Failed to prepare sirius client core, %d", rc);
+                LOGI(mModule, "Failed to prepare voyager client core, %d", rc);
             }
         }
     }
@@ -351,7 +351,7 @@ int32_t RequestHandlerClient::convertToRequestType(
             LOGE(mModule, "Invalid msg, \"%s\"", msg);
             rc = NOT_FOUND;
         } else {
-            result = ::sirius::convertToRequestType(type);
+            result = ::voyager::convertToRequestType(type);
         }
     }
 
@@ -370,7 +370,7 @@ bool RequestHandlerClient::requested()
         if (!kCore.ready()) {
             rc = kCore.construct();
             if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to client sirius client core, %d", rc);
+                LOGE(mModule, "Failed to client voyager client core, %d", rc);
             }
         }
     }
@@ -379,7 +379,7 @@ bool RequestHandlerClient::requested()
         if (!kCore.ready()) {
             rc = kCore.prepare();
             if (!SUCCEED(rc)) {
-                LOGI(mModule, "Failed to prepare sirius client core, %d", rc);
+                LOGI(mModule, "Failed to prepare voyager client core, %d", rc);
             }
         }
     }

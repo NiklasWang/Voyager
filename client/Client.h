@@ -1,9 +1,9 @@
-#ifndef _SIRIUS_CLIENT_H_
-#define _SIRIUS_CLIENT_H_
+#ifndef _VOYAGER_CLIENT_H_
+#define _VOYAGER_CLIENT_H_
 
 #include "SiriusClientIntf.h"
 
-namespace sirius {
+namespace voyager {
 
 class SiriusClientImpl;
 

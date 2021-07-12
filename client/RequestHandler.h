@@ -7,7 +7,7 @@
 #include "SiriusClientCore.h"
 #include "SocketClientStateMachine.h"
 
-namespace sirius {
+namespace voyager {
 
 class RequestHandlerClient
 {

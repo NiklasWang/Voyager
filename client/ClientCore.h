@@ -1,5 +1,5 @@
-#ifndef _SIRIUS_CLIENT_CORE_H_
-#define _SIRIUS_CLIENT_CORE_H_
+#ifndef _VOYAGER_CLIENT_CORE_H_
+#define _VOYAGER_CLIENT_CORE_H_
 
 #include "common.h"
 #include "SiriusServerIntf.h"
@@ -8,7 +8,7 @@
 #include "HandlerOpsIntf.h"
 #include "SocketClientStateMachine.h"
 
-namespace sirius {
+namespace voyager {
 
 class SiriusClientCore :
     public noncopyable {
