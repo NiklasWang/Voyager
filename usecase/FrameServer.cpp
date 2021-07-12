@@ -70,11 +70,9 @@ int32_t FrameServer::enqueue(void *dat, int32_t format)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        if (checkFdExists(dat)) {
-            removeFdRecord(dat);
-        } else {
-            LOGE(mModule, "Fd %d not exist.", fd);
-            rc = PARAM_INVALID;
+        rc = removeFdRecord(dat);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to remove fd record, %d", rc);
         }
     }
 

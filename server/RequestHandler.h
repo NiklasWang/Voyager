@@ -37,10 +37,10 @@ protected:
     virtual int32_t exitServerLoop();
     bool checkFdExists(int32_t fd);
     bool checkFdExists(void *ptr);
-    void removeFdRecord(int32_t fd);
-    void removeFdRecord(void *ptr);
     void addFdRecord(int32_t fd);
     void addFdRecord(int32_t fd, void *ptr);
+    int32_t removeFdRecord(int32_t fd);
+    int32_t removeFdRecord(void *ptr);
 
 protected:
     bool          mConstructed;

@@ -30,12 +30,11 @@ int32_t FdServer::enqueue(int32_t fd)
 {
     int32_t rc = NO_ERROR;
 
-    if (checkFdExists(fd)) {
-        removeFdRecord(fd);
-        close(fd);
-    } else {
-        LOGE(mModule, "Fd %d not exist.", fd);
-        rc = PARAM_INVALID;
+    if (SUCCEED(rc)) {
+        rc = removeFdRecord(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to remove fd record, %d", rc);
+        }
     }
 
     return rc;

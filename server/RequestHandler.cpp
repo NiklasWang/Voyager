@@ -101,24 +101,37 @@ bool RequestHandler::checkFdExists(void *ptr)
     return found;
 }
 
-void RequestHandler::removeFdRecord(int32_t fd)
+int32_t RequestHandler::removeFdRecord(int32_t fd)
 {
-    mFds.erase(mFds.find(fd));
-    return;
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (checkFdExists(dat)) {
+            removeFdRecord(dat);
+        } else {
+            LOGE(mModule, "Fd %d not exist.", fd);
+            rc = PARAM_INVALID;
+        }
+    }
+
+    return rc;
 }
 
-void RequestHandler::removeFdRecord(void *ptr)
+int32_t RequestHandler::removeFdRecord(void *ptr)
 {
+    bool found = false;
+
     auto itr = mFds.begin();
     while (itr != mFds.end()) {
         if (itr->second == ptr) {
             itr = mFds.erase(itr);
+            found = true;
         } else {
             itr++;
         }
     }
 
-    return;
+    return found ? NO_ERROR : NOT_EXIST;
 }
 
 void RequestHandler::addFdRecord(int32_t fd)
