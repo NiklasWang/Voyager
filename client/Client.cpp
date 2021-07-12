@@ -52,10 +52,10 @@ int32_t Client::send(int32_t fd, int64_t len)
     return SUCCEED(rc) ? mCore->send(fd, len) : rc;
 }
 
-int32_t Client::send(void *dat, int64_t len, int32_t format)
+int32_t Client::send(int32_t fd, int64_t len, int32_t format)
 {
     int32_t rc = CONSTRUCT_CORE_ONCE();
-    return SUCCEED(rc) ? mCore->send(dat, len, format) : rc;
+    return SUCCEED(rc) ? mCore->send(fd, len, format) : rc;
 }
 
 int32_t Client::send(int32_t event, int32_t arg1, int32_t arg2)

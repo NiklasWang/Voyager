@@ -49,7 +49,7 @@ int32_t ClientCore::send(int32_t fd, int64_t len)
 }
 
 
-int32_t ClientCore::send(void *dat, int64_t len, int32_t format)
+int32_t ClientCore::send(int32_t fd, int64_t len, int32_t format)
 {
     int32_t rc = NO_ERROR;
 
@@ -63,7 +63,7 @@ int32_t ClientCore::send(void *dat, int64_t len, int32_t format)
     if (SUCCEED(rc)) {
         RequestHandler *handler = mRequests[FRAME];
         if (NOTNULL(handler))
-        rc = handler->send(dat, len);
+        rc = handler->send(fd, len, format);
         if (FAILED(rc)) {
             LOGE(mModule, "Send frame %p %d %d failed, %d", dat, len, format, rc);
         }
@@ -99,6 +99,7 @@ int32_t ClientCore::send(int32_t event, int32_t arg1, int32_t arg2)
 int32_t ClientCore::createHandlerIfRequired(RequestType type)
 {
     int32_t rc = NO_ERROR;
+    RequestHandler *localHandler = nullptr;
 
     if (SUCCEED(rc)) {
         if (!requested(type)) {
@@ -109,17 +110,23 @@ int32_t ClientCore::createHandlerIfRequired(RequestType type)
 
     if (SUCCEED(rc)) {
         if (ISNULL(mRequests[type])) {
-            mRequests[type] = createClientRequestHandler(type, mName);
-            if (ISNULL(mRequests[type])) {
+            localHandler = createHandler(type, mName);
+            if (localHandler)) {
                 LOGE(mModule, "Failed to create %s client.",
                     getRequestName(type));
                 rc = NO_MEMORY;
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (ISNULL(mRequests[type]) && NOTNULL(localHandler)) {
+            rc = localHandler->construct();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to construct %s client, %d",
+                    getRequestName(type), rc);
             } else {
-                rc = mRequests[type]->construct();
-                if (FAILED(rc)) {
-                    LOGE(mModule, "Failed to construct %s client, %d",
-                        getRequestName(type), rc);
-                }
+                mRequests[type] = localHandler;
             }
         }
     }
@@ -229,8 +236,6 @@ int32_t ClientCore::importOverallControl()
 {
     int32_t rc = NO_ERROR;
     int32_t overallControlFd;
-    int32_t size = 0;
-    bool locked  = false;
     char msg[SOCKET_DATA_MAX_LEN];
 
     if (SUCCEED(rc)) {
