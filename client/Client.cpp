@@ -1,106 +1,79 @@
-#include "common.h"
-#include "SiriusClient.h"
-#include "SiriusClientImpl.h"
-#include "RWLock.h"
+#include "Common.h"
+#include "Client.h"
+#include "ClientCore.h"
 
 namespace voyager {
 
-#define CHECK_VALID_IMPL() \
+#define CHECK_VALID_CORE() \
     ({ \
         int32_t __rc = NO_ERROR; \
-        if (ISNULL(mImpl)) { \
-            LOGD(MODULE_VOYAGER, "Sirius client impl not created"); \
+        if (ISNULL(mCore)) { \
             __rc = NOT_INITED; \
         } \
         __rc; \
     })
 
-#define CONSTRUCT_IMPL() \
+#define CONSTRUCT_CORE() \
     ({ \
         int32_t __rc = NO_ERROR; \
-        if (ISNULL(mImpl)) { \
-            mImpl = new SiriusClientImpl(); \
-            if (ISNULL(mImpl)) { \
-                LOGE(MODULE_VOYAGER, "Failed to create Sirius client impl"); \
+        if (ISNULL(mCore)) { \
+            mCore = new ClientCore(); \
+            if (ISNULL(mCore)) { \
+                LOGE(MODULE_CLIENT, "Failed to create client core."); \
                 __rc = NOT_INITED; \
             } \
         } \
         __rc; \
     })
 
-static RWLock gLock;
-
-#define CONSTRUCT_IMPL_ONCE() \
+#define CONSTRUCT_CORE_ONCE() \
     ({ \
-        RWLock::AutoWLock l(gLock); \
-        int32_t __rc = CHECK_VALID_IMPL(); \
+        int32_t __rc = CHECK_VALID_CORE(); \
         if (__rc == NOT_INITED) { \
-            __rc = CONSTRUCT_IMPL(); \
+            __rc = CONSTRUCT_CORE(); \
         } \
         __rc; \
     })
 
-int32_t  override;
-
-
-int32_t SiriusClient::init(Header &header)
+int32_t SiriusClient::send(void *dat, int64_t len)
 {
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->init(header) : rc;
+    int32_t rc = CONSTRUCT_CORE_ONCE();
+    return SUCCEED(rc) ? mCore->send(dat, len) : rc;
 }
 
-int32_t SiriusClient::onPreviewReady(int32_t w, int32_t h,
-    int32_t stride, int32_t scanline, void *data, int64_t ts)
+int32_t SiriusClient::send(int32_t fd, int64_t len)
 {
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->onPreviewReady(
-        w, h, stride, scanline, data, ts) : rc;
+    int32_t rc = CONSTRUCT_CORE_ONCE();
+    return SUCCEED(rc) ? mCore->send(fd, len) : rc;
 }
 
-int32_t SiriusClient::onYuvPictureReady(int32_t w, int32_t h,
-    int32_t stride, int32_t scanline, void *data, int64_t ts)
+int32_t SiriusClient::send(void *dat, int64_t len, int32_t format)
 {
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->onYuvPictureReady(
-        w, h, stride, scanline, data, ts) : rc;
+    int32_t rc = CONSTRUCT_CORE_ONCE();
+    return SUCCEED(rc) ? mCore->send(dat, len, format) : rc;
 }
 
-int32_t SiriusClient::onBayerPictureReady(int32_t w, int32_t h,
-    void *data, int64_t ts, Pattern pattern)
+int32_t SiriusClient::send(int32_t event, int32_t arg1, int32_t arg2)
 {
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->onBayerPictureReady(
-        w, h, data, ts, pattern) : rc;
+    int32_t rc = CONSTRUCT_CORE_ONCE();
+    return SUCCEED(rc) ? mCore->send(event, arg1, arg2) : rc;
 }
 
-int32_t SiriusClient::sendEvent(int32_t evt, int32_t arg1, int32_t arg2)
+bool SiriusClient::requested(RequestType type)
 {
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->sendEvent(evt, arg1, arg2) : rc;
+    int32_t rc = CONSTRUCT_CORE_ONCE();
+    return SUCCEED(rc) ? mCore->requested(type) : false;
 }
-
-int32_t SiriusClient::sendData(int32_t type, void *data, int32_t size)
-{
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->sendData(type, data, size) : rc;
-}
-
-int32_t SiriusClient::abort(int32_t type)
-{
-    int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->abort(type) : rc;
-}
-
 
 SiriusClient::SiriusClient() :
-    mImpl(NULL)
+    mCore(nullptr)
 {
 }
 
 SiriusClient::~SiriusClient()
 {
-    if (NOTNULL(mImpl)) {
-        SECURE_DELETE(mImpl);
+    if (NOTNULL(mCore)) {
+        SECURE_DELETE(mCore);
     }
 }
 

@@ -1,39 +1,33 @@
 #ifndef _VOYAGER_CLIENT_H_
 #define _VOYAGER_CLIENT_H_
 
-#include "SiriusClientIntf.h"
+#include "ClientIntf.h"
 
 namespace voyager {
 
-class SiriusClientImpl;
+class ClientCore;
 
-class SiriusClient :
-    public SiriusClientIntf
+class Client :
+    public ClientIntf
 {
 public:
-    int32_t init(Header &header) override;
 
-    int32_t onPreviewReady(int32_t w, int32_t h, int32_t stride,
-        int32_t scanline, void *data, int64_t ts) override;
-
-    int32_t onYuvPictureReady(int32_t w, int32_t h, int32_t stride,
-        int32_t scanline, void *data, int64_t ts) override;
-
-    int32_t onBayerPictureReady(int32_t w, int32_t h,
-        void *data, int64_t ts, Pattern pattern) override;
-
-    int32_t sendEvent(int32_t evt, int32_t arg1, int32_t arg2) override;
-
-    int32_t sendData(int32_t type, void *data, int32_t size) override;
-
-    int32_t abort(int32_t type) override;
+    virtual int32_t send(void *dat, int64_t len) override;
+    virtual int32_t send(int32_t fd, int64_t len) override;
+    virtual int32_t send(void *dat, int64_t len, int32_t format) override;
+    virtual int32_t send(int32_t event, int32_t arg1, int32_t arg2) override;
+    virtual bool    requested(RequestType type) override;
 
 public:
-    SiriusClient();
-    virtual ~SiriusClient();
+    Client();
+    virtual ~Client();
 
 private:
-    SiriusClientImpl *mImpl;
+    Client(const Client &rhs);
+    Client &operator=(const Client &rhs);
+
+private:
+    ClientCore *mCore;
 };
 
 };
