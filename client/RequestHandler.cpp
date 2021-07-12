@@ -1,48 +1,346 @@
-#include "RequestHandlerClient.h"
-#include "MemMgmt.h"
+#include "RequestHandler.h"
+
+#define CONNECT_SERVER_RETRY_COUNT 10
+#define CONNECT_SERVER_RETRY_TIME  10 // ms
 
 namespace voyager {
 
-RequestHandlerClient::RequestHandlerClient(RequestType type, const char *name, uint32_t maxNum) :
-    mConstructed(false),
-    mModule(MODULE_REQUEST_CLIENT_HANDLER),
-    mType(type),
-    mName(name),
-    mConnected(false),
-    mReady(false),
-    mMemNum(0),
-    mMemMaxNum(maxNum),
-    mMemMap(NULL)
+int32_t RequestHandler::send(void *dat, int64_t len)
 {
-    ASSERT_LOG(mModule, maxNum <= REQUEST_HANDLER_MAX_MEMORY_NUM,
-        "Too much mem to share, %d/%d", maxNum, REQUEST_HANDLER_MAX_MEMORY_NUM);
-    ASSERT_LOG(mModule, getRequestType(type) != REQUEST_TYPE_MAX_INVALID,
-        "Invalid request type %d", type);
-    if (ISNULL(name)) {
-        mName = "generic request client handler";
+    int32_t rc = NO_ERROR;
+    int32_t fd = -1;
+
+    if (SUCCEED(rc)) {
+        if (!mConnected) {
+            rc = connectServer();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to connect server, %d", rc);
+            }
+        }
     }
-    pthread_mutex_init(&mLocker, NULL);
+
+    if (SUCCEED(rc)) {
+        rc = allocFdAndCopy(dat, len, fd);
+        if (FAILED(rc) || !validFd(fd)) {
+            LOGE(mModule, "Failed to alloc %d memory from buf mgr, %d", len, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendPrivateMsg(DATA, len);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send private msg, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendServerFdAndWaitReply(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send fd and wait reply, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc) || FAILED(rc)) {
+        if (validFd(fd)) {
+            rc = mBufMgr.release(fd);
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to release fd %d to buf mgr, %d", fd, rc);
+            }
+        }
+    }
+
+    return rc;
 }
 
-RequestHandlerClient::~RequestHandlerClient()
+int32_t RequestHandler::send(int32_t fd, int64_t len)
 {
-    if (mConstructed) {
-        destruct();
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!mConnected) {
+            rc = connectServer();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to connect server, %d", rc);
+            }
+        }
     }
-    pthread_mutex_destroy(&mLocker);
+
+    if (SUCCEED(rc)) {
+        rc = sendPrivateMsg(FD, len);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send private msg, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendServerFdAndWaitReply(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send fd and wait reply, %d", rc);
+        }
+    }
+
+    return rc;
 }
 
-const char *RequestHandlerClient::getName()
+int32_t RequestHandler::send(int32_t fd, int64_t len, int32_t format)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!mConnected) {
+            rc = connectServer();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to connect server, %d", rc);
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendPrivateMsg(FRAME, len, format);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send private msg, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendServerFdAndWaitReply(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send fd and wait reply, %d", rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::send(int32_t event, int32_t arg1, int32_t arg2)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!mConnected) {
+            rc = connectServer();
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to connect server, %d", rc);
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = sendPrivateMsg(event, arg1, arg2);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send private msg, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = waitServerReply();
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to wait reply, %d", rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::connectServer()
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (mConnected) {
+            LOGE(mModule, "Already connected.");
+            rc = ALREADY_EXISTS;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        int32_t retryCnt = 0;
+        while (!mConnected && retryCnt++ < 10) {
+            rc = mSC.connectServer();
+            if (FAILED(rc)) {
+                LOGD(mModule, "Failed to connect server, "
+                    "may not started, try again, %s %d", strerror(errno), rc);
+                usleep(Times::Us(Times::Ms(10))());
+            } else {
+                mConnected = true;
+            }
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::sendPrivateMsg(RequestType type, int64_t len)
+{
+    int32_t rc = NO_ERROR;
+    std::string msg = SOCKET_CLIENT_SEND_REQUEST;
+
+    if (SUCCEED(rc)) {
+        size_t pos1 = msg.find("%TYPE%");
+        msg.replace(pos1, strlen("%TYPE%"), std::to_string(type));
+        size_t pos2 = msg.find("%PRIVATE%");
+        std::stringstream ss;
+        len >> ss;
+        msg.replace(pos2, strlen("%PRIVATE%"), ss.string());
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(msg.c_str(), msg.length());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d",
+                msg.c_str(), rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::sendPrivateMsg(RequestType type, int64_t len, int32_t format)
+{
+    int32_t rc = NO_ERROR;
+    std::string msg = SOCKET_CLIENT_SEND_REQUEST;
+
+    if (SUCCEED(rc)) {
+        size_t pos1 = msg.find("%TYPE%");
+        msg.replace(pos1, strlen("%TYPE%"), std::to_string(type));
+        size_t pos2 = msg.find("%PRIVATE%");
+        std::stringstream ss;
+        ss << len << ";" << std::to_string(format);
+        msg.replace(pos2, strlen("%PRIVATE%"), ss.to_string());
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(msg.c_str(), msg.length());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d",
+                msg.c_str(), rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::sendPrivateMsg(int32_t event, int32_t arg1, int32_t arg2)
+{
+    int32_t rc = NO_ERROR;
+    std::string msg = SOCKET_CLIENT_EVENT_FORMAT;
+
+    if (SUCCEED(rc)) {
+        size_t pos1 = msg.find("%EVENT%");
+        msg.replace(pos1, strlen("%EVENT%"), std::to_string(event));
+        size_t pos2 = msg.find("%ARG1%");
+        msg.replace(pos2, strlen("%ARG1%"), std::to_string(arg1));
+        size_t pos3 = msg.find("%ARG2%");
+        msg.replace(pos3, strlen("%ARG2%"), std::to_string(arg2));
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(msg.c_str(), msg.length());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d",
+                msg.c_str(), rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::allocFdAndCopy(void *dat, int64_t len, int32_t &fd)
+{
+    int32_t rc = NO_ERROR;
+    void *localBuf = nullptr;
+    int32_t localFd = -1;
+
+    if (SUCCEED(rc)) {
+        rc = mBufMgr.alloc(&localBuf, len, &localFd);
+        if (FAILED(rc) || ISNULL(localBuf) || !validFd(localFd)) {
+            LOGE(mModule, "Failed to alloc buffer, %d", rc);
+            rc = NO_MEMORY;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        memcpy(localBuf, dat, len);
+        fd = localFd;
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::waitServerReply()
+{
+    int32_t rc = NO_ERROR;
+    char socketMsg[SOCKET_DATA_MAX_LEN];
+
+    if (SUCCEED(rc)) {
+        socketMsg[0] = '\0';
+        rc = mSC.receiveMsg(socketMsg, sizeof(socketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (COMPARE_SAME_STRING(socketMsg, SOCKT_SERVER_FAILED_RECEIVE)) {
+            LOGE(mModule, "Server receive msg failed.");
+            rc = SERVER_ERROR;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (COMPARE_SAME_STRING(socketMsg, SOCKET_SERVER_PROCESS_FAILED)) {
+            LOGE(mModule, "Server receive request data failed.");
+            rc = SERVER_ERROR;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(socketMsg, SOCKET_SERVER_PROCESSED)) {
+            LOGE(mModule, "Server sent unknown message.");
+            rc = SERVER_ERROR;
+        }
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::sendServerFdAndWaitReply(int32_t fd)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendFd(fd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send fd %d to server, %d", fd, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = waitServerReply();
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to wait server reply, %d", rc);
+        }
+    }
+
+    return rc;
+}
+
+bool RequestHandler::validFd(int32_t fd)
+{
+    return fd > 0;
+}
+
+const char *RequestHandler::getName()
 {
     return mName;
 }
 
-RequestType RequestHandlerClient::getType()
+RequestType RequestHandler::getType()
 {
     return mType;
 }
 
-int32_t RequestHandlerClient::construct()
+int32_t RequestHandler::construct()
 {
     int32_t rc = NO_ERROR;
 
@@ -51,24 +349,12 @@ int32_t RequestHandlerClient::construct()
     }
 
     if (SUCCEED(rc)) {
-        if (ISNULL(mMemMap) && mMemMaxNum > 0) {
-            mMemMap = (MemoryMap *)Malloc(sizeof(MemoryMap) * mMemMaxNum);
-            if (ISNULL(mMemMap)) {
-                LOGE(mModule, "Failed to alloc %d bytes.",
-                    sizeof(MemoryMap) * mMemMaxNum);
-            } else {
-                for (int32_t i = 0; i < mMemMaxNum; i++) {
-                    mMemMap[i].fd   = -1;
-                    mMemMap[i].mem  = NULL;
-                    mMemMap[i].size = 0;
-                }
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.construct();
-        if (!SUCCEED(rc)) {
+        std::string name = mName;
+        name += "_";
+        name += getRequestName(getType());
+        name += "_server";
+        rc = mSC.construct(name.c_str());
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct socket state machine, %d", rc);
         }
     }
@@ -81,7 +367,7 @@ int32_t RequestHandlerClient::construct()
     return rc;
 }
 
-int32_t RequestHandlerClient::destruct()
+int32_t RequestHandler::destruct()
 {
     int32_t rc = NO_ERROR;
     int32_t final = rc;
@@ -93,465 +379,54 @@ int32_t RequestHandlerClient::destruct()
     }
 
     if (SUCCEED(rc)) {
-        mReady = false;
-        mConnected = false;
+        rc = mSC.cancelWaitMsg();
+        if (FAILED(rc)) {
+            final |= rc;
+            LOGE(mModule, "Failed to cancel wait msg for socket sm, %d", rc);
+            RESETRESULT(rc);
+        }
     }
 
     if (SUCCEED(rc)) {
-        mSC.cancelWaitMsg();
         rc = mSC.destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             final |= rc;
-            LOGE(mModule, "Failed to destruct socket state machine, %d", rc);
+            LOGE(mModule, "Failed to destruct socket sm, %d", rc);
             RESETRESULT(rc);
         }
     }
 
-    if (SUCCEED(rc)) {
-        rc = releaseAllMems();
-        if (!SUCCEED(rc)) {
-            final |= rc;
-            LOGE(mModule, "Failed to release all mems, %d", rc);
-            RESETRESULT(rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (NOTNULL(mMemMap)) {
-            SECURE_FREE(mMemMap);
-        }
-    }
-
-    if (!SUCCEED(final)) {
+    if (FAILED(final)) {
         LOGE(mModule, "Request client handler %s destructed "
-            "with error %d", getName(), final);
+            "with error %d", getRequestName(mType), final);
     } else {
-        LOGD(mModule, "Request client handler %s destructed", getName());
+        LOGD(mModule, "Request client handler %s destructed",
+            getRequestName(mType));
     }
 
     return rc;
 }
 
-int32_t RequestHandlerClient::prepare()
+RequestHandler::RequestHandler(RequestType type, const std::string &name) :
+    Identifier(MODULE_CLINET_HANDLER, "ClientRequestHandler", "1.0.0"),
+    mConstructed(false),
+    mType(type),
+    mName(name),
+    mConnected(false)
 {
-    int32_t rc = NO_ERROR;
-    bool locked  = false;
-
-    if (SUCCEED(rc)) {
-        if (mReady) {
-            LOGE(mModule, "Already prepared.");
-            rc = ALREADY_INITED;
-        }
+    ASSERT_LOG(mModule, getRequestType(type) != REQUEST_TYPE_MAX_INVALID,
+        "Invalid request type %d", type);
+    if (ISNULL(name)) {
+        mName = "generic request client handler";
     }
-
-    if (SUCCEED(rc)) {
-        pthread_mutex_lock(&mLocker);
-        locked = true;
-        if (mReady) {
-            rc = ALREADY_INITED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!kCore.ready()) {
-            rc = kCore.construct();
-            if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to client voyager client core, %d", rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!kCore.ready()) {
-            rc = kCore.prepare();
-            if (!SUCCEED(rc)) {
-                LOGI(mModule, "Failed to prepare voyager client core, %d", rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        while (!mConnected) {
-            rc = mSC.connectServer();
-            if (!SUCCEED(rc)) {
-                LOGD(mModule, "Failed to connect server, "
-                    "may not started, try again, %s %d", strerror(errno), rc);
-                rc = NOT_EXIST;
-            } else {
-                mConnected = true;
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        char msg[SOCKET_DATA_MAX_LEN];
-        sprintf(msg, SOCKET_CLIENT_CONNECT_TYPE " %d", getType());
-        rc = mSC.sendMsg(msg, strlen(msg));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg \"%s\" to server, %d", msg, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = syncServerMemory();
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to sync server memory, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mReady = true;
-    }
-
-    if (SUCCEED(rc) || !SUCCEED(rc)) {
-        if (locked) {
-            pthread_mutex_unlock(&mLocker);
-        }
-    }
-
-    return rc;
 }
 
-int32_t RequestHandlerClient::syncServerMemory()
+RequestHandler::~RequestHandler()
 {
-    int32_t rc = NO_ERROR;
-    int32_t final = rc;
-
-    for (int32_t i = 0; i < mMemMaxNum; i++) {
-        rc = acceptSingleMemory();
-        if (rc == JUMP_DONE) {
-            break;
-        } else if (!SUCCEED(rc)) {
-            final |= rc;
-            LOGE(mModule, "Failed to accept single memory %d, %d", i, rc);
-        } else {
-            mMemNum++;
-        }
+    if (mConstructed) {
+        destruct();
     }
-
-    return final;
 }
-
-int32_t RequestHandlerClient::acceptSingleMemory()
-{
-    int32_t rc = NO_ERROR;
-    int32_t clientfd = -1;
-    void *buf = NULL;
-    int32_t size = -1;
-    char msg[SOCKET_DATA_MAX_LEN];
-
-    if (SUCCEED(rc)) {
-        msg[0] = '\0';
-        rc = mSC.receiveMsg(msg, SOCKET_DATA_MAX_LEN);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to receive msg, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (COMPARE_SAME_LEN_STRING(msg, SOCKET_SERVER_SHARE_DONE,
-            strlen(SOCKET_SERVER_SHARE_DONE))) {
-            LOGD(mModule, "Memory share done.");
-            rc = JUMP_DONE;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        RequestType result = REQUEST_TYPE_MAX_INVALID;
-        rc = convertToRequestType(msg, SOCKET_SERVER_SHARE_STR, result);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to convert to request type, %s -> %s, %d",
-                msg, SOCKET_SERVER_SHARE_STR, rc);
-        }
-        if (result != getType()) {
-            LOGE(mModule, "Shouldn't be here, bad request type, %d/%d",
-                result, getType());
-            rc = BAD_PROTOCAL;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.sendMsg(SOCKET_CLIENT_REPLY_SHARE_STR,
-            strlen(SOCKET_CLIENT_REPLY_SHARE_STR));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg to server, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.receiveFd(&clientfd);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to receive fd from server, %d", rc);
-        }
-        if (clientfd == -1) {
-            LOGE(mModule, "Invalid fd -1 from server.");
-            rc = INVALID_FORMAT;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        sprintf(msg, SOCKET_CLIENT_REPLY_FD_STR " %d", clientfd);
-        rc = mSC.sendMsg(msg, strlen(msg));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg to server, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = kCore.getMemSize(getType(), &size);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg to server, %d", rc);
-        }
-        if (size <= 0) {
-            LOGE(mModule, "Failed to get memory size");
-            rc = BAD_PROTOCAL;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = kCore.importBuf(&buf, clientfd, size);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to import memory for fd %d size %d, %d",
-                clientfd, size, rc);
-        } else {
-            LOGD(mModule, "Request type %d memory fd %d mapped %p",
-                getType(), clientfd, buf);
-        }
-        if (ISNULL(buf)) {
-            LOGE(mModule, "Buf is NULL and that's invalid");
-            rc = UNKNOWN_ERROR;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = addMemoryMap(buf, clientfd, size);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to record memory map, %d", rc);
-            kCore.releaseBuf(buf);
-        }
-    }
-
-    return rc;
-}
-
-int32_t RequestHandlerClient::convertToRequestType(
-    char *msg, const char *prefix, RequestType &result)
-{
-    int32_t rc = NO_ERROR;
-    int32_t type = -1;
-
-    if (!COMPARE_SAME_LEN_STRING(msg, prefix, strlen(prefix))) {
-        LOGE(mModule, "Prefix not match, %s VS %s", msg, prefix);
-        rc = PARAM_INVALID;
-    }
-
-    if (SUCCEED(rc)) {
-        type = atoi(msg + strlen(prefix) + 1);
-        if (type < 0) {
-            LOGE(mModule, "Invalid msg, \"%s\"", msg);
-            rc = NOT_FOUND;
-        } else {
-            result = ::voyager::convertToRequestType(type);
-        }
-    }
-
-    return rc;
-}
-
-
-bool RequestHandlerClient::requested()
-{
-    int32_t rc  = NO_ERROR;
-    bool result = false;
-
-    pthread_mutex_lock(&mLocker);
-
-    if (SUCCEED(rc)) {
-        if (!kCore.ready()) {
-            rc = kCore.construct();
-            if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to client voyager client core, %d", rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!kCore.ready()) {
-            rc = kCore.prepare();
-            if (!SUCCEED(rc)) {
-                LOGI(mModule, "Failed to prepare voyager client core, %d", rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (kCore.requested(getType())) {
-            result = true;
-        }
-    }
-
-    pthread_mutex_unlock(&mLocker);
-
-    return result;
-}
-
-int32_t RequestHandlerClient::addMemoryMap(void *mem, int32_t fd, int32_t size)
-{
-    int32_t rc = NOT_FOUND;
-
-    for (int32_t i = 0; i < mMemMaxNum; i++) {
-        if (mMemMap[i].fd == -1) {
-            mMemMap[i].mem = mem;
-            mMemMap[i].fd  = fd;
-            mMemMap[i].size = size;
-            rc = NO_ERROR;
-            break;
-        }
-    }
-
-    return rc;
-}
-
-int32_t RequestHandlerClient::findMemoryMap(int32_t fd, void **mem, int32_t *size)
-{
-    int32_t rc = NOT_FOUND;
-    void *result = NULL;
-    int32_t maxSize = -1;
-
-    for (int32_t i = 0; i < mMemNum; i++) {
-        if (mMemMap[i].fd == fd &&
-            mMemMap[i].fd != -1) {
-            result = mMemMap[i].mem;
-            maxSize = mMemMap[i].size;
-            rc = NO_ERROR;
-            break;
-        }
-    }
-
-    *mem = result;
-    *size = maxSize;
-
-    return rc;
-}
-
-int32_t RequestHandlerClient::releaseAllMems()
-{
-    if (NOTNULL(mMemMap)) {
-        for (int32_t i = 0; i < mMemNum; i++) {
-            if (mMemMap[i].mem != NULL) {
-                kCore.releaseBuf(mMemMap[i].mem);
-                mMemMap[i].fd = -1;
-                mMemMap[i].mem = NULL;
-                mMemMap[i].size = 0;
-            }
-        }
-    }
-
-    return NO_ERROR;
-}
-
-int32_t RequestHandlerClient::onDataReady(void *header, uint8_t *dat)
-{
-    int32_t rc = NO_ERROR;
-    int32_t fd = -1;
-    void *mem = NULL;
-    int32_t maxSize = -1;
-
-    if (SUCCEED(rc)) {
-        if (!requested()) {
-            LOGD(mModule, "%d not requested, abandon this time.", getType());
-            rc = NOT_REQUIRED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!mReady) {
-            rc = prepare();
-            if (!SUCCEED(rc)) {
-                LOGE(mModule, "Failed to prepare request client handler, %d", rc);
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = kCore.getUsedMem(getType(), &fd);
-        if (rc == NOT_FOUND) {
-            LOGI(mModule, "Sirius server memory all full, skip this frame");
-        } else if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to get used memory, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = findMemoryMap(fd, &mem, &maxSize);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to find memory map, %d", rc);
-        }
-        if (ISNULL(mem)) {
-            LOGE(mModule, "Didn't find memory in map");
-            rc = NOT_FOUND;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        int32_t headsize = sizeOfHeader();
-        int32_t datasize = sizeOfData(header);
-        if (maxSize < (headsize + datasize)) {
-            LOGE(mModule, "Insuffciant server memory size for %d "
-                "request, %d / %d + %d", getType(), maxSize, headsize, datasize);
-            rc = BAD_PROTOCAL;
-        } else {
-            memcpy(mem, header, headsize);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = copyDataToServer((uint8_t *)mem + sizeOfHeader(), header, dat);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to copy to server, %d", rc);
-        }
-        kCore.flushBuf(mem);
-    }
-
-    if (SUCCEED(rc)) {
-        rc = kCore.setMemStatus(getType(), fd, FRESH_MEMORY);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to renew memory status, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = notifyDataReady(fd);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send data notify to server, %d", rc);
-        }
-    }
-
-    return  RETURNIGNORE(rc, NOT_FOUND);
-}
-
-int32_t RequestHandlerClient::notifyDataReady(int32_t fd)
-{
-    int32_t rc = NO_ERROR;
-    char msg[SOCKET_DATA_MAX_LEN];
-
-    if (SUCCEED(rc)) {
-        sprintf(msg, SOCKET_CLIENT_NOTIFIER_STR " %d", fd);
-        rc = mSC.sendMsg(msg, strlen(msg));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg to server, %d", rc);
-        }
-    }
-
-    return rc;
-}
-
-bool RequestHandlerClient::Ready()
-{
-    return mReady;
-}
-
-SiriusClientCore RequestHandlerClient::kCore;
 
 };
 

@@ -45,6 +45,7 @@ enum err_raeson {
     NOT_NEEDED,
     SYS_ERROR,
     NOT_MATCH,
+    SERVER_ERROR,
     TEST_FAILED,
     UNKNOWN_ERROR,
 };

@@ -13,16 +13,16 @@ RequestHandler *ClientCore::createHandler(RequestType type, const std::string &n
 
     switch (type) {
         case DATA: {
-            request = new DataClient(type, name);
+            request = new DataClient(name);
         } break;
         case FD: {
-            request = new FdClient(type, name);
+            request = new FdClient(name);
         } break;
         case FRAME: {
-            request = new FrameClient(type, name);
+            request = new FrameClient(name);
         } break;
         case EVENT: {
-            request = new EventClient(type, name);
+            request = new EventClient(name);
         } break;
         default: {
             LOGE(mModule, "Invalid request type %d", type);

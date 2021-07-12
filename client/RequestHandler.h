@@ -1,67 +1,48 @@
 #ifndef _REQUEST_HANDLER_CLIENT_H_
 #define _REQUEST_HANDLER_CLIENT_H_
 
-#include "common.h"
-#include "SiriusServerIntf.h"
-#include "ThreadPoolEx.h"
-#include "SiriusClientCore.h"
+#include "Common.h"
+#include "ClientIntf.h"
+#include "BufferMgr.h"
 #include "SocketClientStateMachine.h"
 
 namespace voyager {
 
-class RequestHandlerClient
-{
+class RequestHandler :
+    public ClientIntf,
+    public Identifier,
+    public noncopyable {
 public:
-    bool requested();
-    int32_t onDataReady(void *header, uint8_t *dat);
-    int32_t prepare();
 
-    bool Ready();
+    virtual int32_t send(void *dat, int64_t len) override;
+    virtual int32_t send(int32_t fd, int64_t len) override;
+    virtual int32_t send(int32_t fd, int64_t len, int32_t format) override;
+    virtual int32_t send(int32_t event, int32_t arg1, int32_t arg2) override;
     const char *getName();
     RequestType getType();
 
 protected:
-    virtual int32_t sizeOfHeader() = 0;
-    virtual int32_t sizeOfData(void *header) = 0;
-    virtual int32_t copyDataToServer(uint8_t *dst, void *header, uint8_t *src) = 0;
-
-protected:
-    RequestHandlerClient(RequestType type, const char *name, uint32_t memNum);
-    virtual ~RequestHandlerClient();
+    RequestHandler(RequestType type, const std::string &name);
+    virtual ~RequestHandler();
     int32_t construct();
     int32_t destruct();
 
 private:
-    int32_t syncServerMemory();
-    int32_t acceptSingleMemory();
-    int32_t addMemoryMap(void *mem, int32_t fd, int32_t size);
-    int32_t findMemoryMap(int32_t fd, void **mem, int32_t *size);
-    int32_t releaseAllMems();
-    int32_t notifyDataReady(int32_t fd);
-    int32_t convertToRequestType(char *msg, const char *prefix, RequestType &result);
-
-private:
-    struct MemoryMap {
-        int32_t fd;
-        void   *mem;
-        int32_t size;
-    };
+    int32_t connectServer();
+    int32_t sendPrivateMsg(RequestType type, int64_t len);
+    int32_t sendPrivateMsg(RequestType type, int64_t len, int32_t format);
+    int32_t sendPrivateMsg(int32_t event, int32_t arg1, int32_t arg2);
+    int32_t allocFdAndCopy(void *dat, int64_t len, int32_t &fd);
+    int32_t sendServerFdAndWaitReply(int32_t fd);
+    bool    validFd(int32_t fd);
 
 protected:
     bool        mConstructed;
-    ModuleType  mModule;
     RequestType mType;
-    const char *mName;
+    std::string mName;
     bool        mConnected;
-    bool        mReady;
-    int32_t     mMemNum;
-    int32_t     mMemMaxNum;
-    MemoryMap  *mMemMap;
-    pthread_mutex_t mLocker;
-
-protected:
     SocketClientStateMachine mSC;
-    static SiriusClientCore  kCore;
+    BufferMgr   mBufMgr;
 };
 
 };

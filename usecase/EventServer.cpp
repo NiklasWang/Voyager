@@ -4,55 +4,62 @@
 
 namespace voyager {
 
-int32_t EventServer::startServerLoop(int32_t clientfd, const std::string &privateMsg)
+int32_t EventServer::startServerLoop(Semaphore &serverReadySem)
 {
     int32_t rc = NO_ERROR;
+    int32_t clientfd = -1;
 
-    do {
-        int32_t fd = 0;
-        int32_t processRc = NO_ERROR;
-        char msgBuf[SOCKET_DATA_MAX_LEN];
-        RESETRESULT(rc);
-
-        if (SUCCEED(rc)) {
-            rc = mSSSM.setClientFd(clientfd);
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed to construct ssm, %d", rc);
-            }
+    if (SUCCEED(rc)) {
+        rc = mSSSM.waitForConnect(&clientfd);
+        if (FAILED(rc) || RESULTNOT(rc, USER_ABORTED)) {
+            LOGE(mModule, "Failed to wait for client connection");
         }
+        if (rc == USER_ABORTED) {
+            LOGI(mModule, "Stop wait connect, user aborted.");
+        }
+        serverReadySem.signal();
+    }
 
-        if (SUCCEED(rc)) {
-            msgBuf[0] = '\0';
-            rc = mSSSM.receiveMsg(msgBuf, sizeof(msgBuf));
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
-            } else if (FAILED(rc) && RESULTNOT(rc, USER_ABORTED)) {
-                rc = mSSSM.sendMsg(SOCKT_SERVER_FAILED_RECEIVE,
-                    strlen(SOCKT_SERVER_FAILED_RECEIVE));
+    if (SUCCEED(rc)) {
+        do {
+            int32_t fd = 0;
+            int32_t processRc = NO_ERROR;
+            char msgBuf[SOCKET_DATA_MAX_LEN];
+            RESETRESULT(rc);
+
+            if (SUCCEED(rc)) {
+                msgBuf[0] = '\0';
+                rc = mSSSM.receiveMsg(msgBuf, sizeof(msgBuf));
                 if (FAILED(rc)) {
-                    LOGE(mModule, "Failed to send msg %s to client, %d",
-                        SOCKT_SERVER_FAILED_RECEIVE, rc);
+                    LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+                } else if (FAILED(rc) && RESULTNOT(rc, USER_ABORTED)) {
+                    rc = mSSSM.sendMsg(SOCKT_SERVER_FAILED_RECEIVE,
+                        strlen(SOCKT_SERVER_FAILED_RECEIVE));
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to send msg %s to client, %d",
+                            SOCKT_SERVER_FAILED_RECEIVE, rc);
+                    }
                 }
             }
-        }
-        
-        if (SUCCEED(rc)) {
-            rc = processRc = onClientSent(-1, msgBuf);
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed process received fd, %d", rc);
+            
+            if (SUCCEED(rc)) {
+                rc = processRc = onClientSent(-1, msgBuf);
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed process received fd, %d", rc);
+                }
             }
-        }
 
-        if (SUCCEED(rc)) {
-            std::string msg = SUCCEED(processRc) ?
-                SOCKET_SERVER_PROCESSED : SOCKET_SERVER_PROCESS_FAILED;
-            rc = mSSSM.sendMsg(msg.c_str(), msg.length());
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed to send msg %s to client, %d",
-                    msg.c_str(), rc);
+            if (SUCCEED(rc)) {
+                std::string msg = SUCCEED(processRc) ?
+                    SOCKET_SERVER_PROCESSED : SOCKET_SERVER_PROCESS_FAILED;
+                rc = mSSSM.sendMsg(msg.c_str(), msg.length());
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to send msg %s to client, %d",
+                        msg.c_str(), rc);
+                }
             }
-        }
-    } while (rc != USER_ABORTED);
+        } while (rc != USER_ABORTED);
+    }
 
     close(clientfd);
 
