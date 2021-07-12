@@ -11,10 +11,11 @@
 
 #define SOCKET_DONE_OVERALL_CONTROL        "Done overall control."
 
-#define SOCKET_START_REQUEST_CONNECTION    "Good, start request connection."
+#define SOCKET_START_QUERY_REQUEST         "Good, start query request."
 
+#define SOCKET_CLIENT_QUERY_REQUEST        "Transfer request type <%TYPE%>"
 
-#define SOCKET_CLIENT_SEND_REQUEST         "Tansfer request type <%TYPE%> private <%PRIVATE%>"
+#define SOCKET_CLIENT_SEND_REQUEST         "Transfer request type %TYPE% private <%PRIVATE%>"
 
 #define SOCKET_SERVER_REPLY_REQUEST_OK     "OK, waitting."
 

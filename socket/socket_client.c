@@ -29,7 +29,9 @@ int32_t connect_to_server(int32_t *fd, const char *socketName)
         memset((unsigned char *)&server_addr, 0, sizeof(server_addr));
         server_addr.sun_family = AF_UNIX;
         strcpy(server_addr.sun_path, SERVER_SOCKET_PATH);
+        strcat(server_addr.sun_path, "/");
         strcat(server_addr.sun_path, socketName);
+        strcat(server_addr.sun_path, SOCKET_FILE_EXTENSION);
         addr_len = strlen(server_addr.sun_path) + sizeof(server_addr.sun_family);
     }
 

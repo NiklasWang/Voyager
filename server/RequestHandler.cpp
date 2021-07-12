@@ -3,7 +3,7 @@
 
 namespace voyager {
 
-int32_t RequestHandler::onClientReady(int32_t clientfd, const std::string &privateMsg)
+int32_t RequestHandler::onClientReady(const std::string &serverName, Semaphore &serverReadySem)
 {
     int32_t rc = NO_ERROR;
 
@@ -16,9 +16,20 @@ int32_t RequestHandler::onClientReady(int32_t clientfd, const std::string &priva
     }
 
     if (SUCCEED(rc)) {
+        std::string name = serverName;
+        name += "_";
+        name += getRequestName(getType());
+        name += "_server";
+        rc = mSSSM.construct(name.c_str());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to construct ssm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
         rc = mThreads->run(
-            [this, =]() -> int32_t {
-                return startServerLoop(clientfd, privateMsg);
+            [this, &]() -> int32_t {
+                return startServerLoop(serverReadySem);
             }
         );
         if (FAILED(rc)) {
@@ -29,55 +40,127 @@ int32_t RequestHandler::onClientReady(int32_t clientfd, const std::string &priva
     return rc;
 }
 
-int32_t RequestHandler::startServerLoop(int32_t clientfd, const std::string &privateMsg)
+int32_t RequestHandler::startServerLoop(Semaphore &serverReadySem)
 {
     int32_t rc = NO_ERROR;
+    int32_t clientfd = -1;
 
-    do {
-        int32_t fd = 0;
-        int32_t processRc = NO_ERROR;
-        RESETRESULT(rc);
-
-        if (SUCCEED(rc)) {
-            rc = mSSSM.setClientFd(clientfd);
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed to construct ssm, %d", rc);
-            }
+    if (SUCCEED(rc)) {
+        rc = mSSSM.waitForConnect(&clientfd);
+        if (FAILED(rc) || RESULTNOT(rc, USER_ABORTED)) {
+            LOGE(mModule, "Failed to wait for client connection");
         }
+        if (rc == USER_ABORTED) {
+            LOGI(mModule, "Stop wait connect, user aborted.");
+        }
+        serverReadySem.signal();
+    }
 
-        if (SUCCEED(rc)) {
-            rc = mSSSM.receiveFd(&fd);
-            if (rc == USER_ABORTED) {
-                LOGI(mModule, "Abort to accept data fd.");
-            } else if (FAILED(rc) && RESULTNOT(rc, USER_ABORTED)) {
-                rc = mSSSM.sendMsg(SOCKT_SERVER_FAILED_RECEIVE,
-                    strlen(SOCKT_SERVER_FAILED_RECEIVE));
+    if (SUCCEED(rc)) {
+        do {
+            int32_t fd = 0;
+            int32_t clientfd = -1;
+            int32_t processRc = NO_ERROR;
+            char    socketMsg[SOCKET_DATA_MAX_LEN];
+            std::string privateMsg;
+            RESETRESULT(rc);
+
+            if (SUCCEED(rc)) {
+                socketMsg[0] = '\0';
+                rc = mSSSM.receiveMsg(socketMsg, sizeof(socketMsg));
                 if (FAILED(rc)) {
-                    LOGE(mModule, "Failed to send msg %s to client, %d",
-                        SOCKT_SERVER_FAILED_RECEIVE, rc);
+                    LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
                 }
             }
-        }
 
-        if (SUCCEED(rc)) {
-            rc = processRc = onClientSent(fd, privateMsg);
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed process received fd, %d", rc);
+            if (SUCCEED(rc)) {
+                rc = revealPrivateArgFromMsg(socketMsg, privateMsg);
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to reveal private arg from msg %d", socketMsg);
+                    rc = mSSSM.sendMsg(SOCKT_SERVER_FAILED_RECEIVE,
+                        strlen(SOCKT_SERVER_FAILED_RECEIVE));
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to send msg %s to client, %d",
+                            SOCKT_SERVER_FAILED_RECEIVE, rc);
+                    }
+                }
+            }
+
+            if (SUCCEED(rc)) {
+                rc = mSSSM.receiveFd(&fd);
+                if (rc == USER_ABORTED) {
+                    LOGI(mModule, "Abort to accept data fd.");
+                } else if (FAILED(rc) && RESULTNOT(rc, USER_ABORTED)) {
+                    rc = mSSSM.sendMsg(SOCKT_SERVER_FAILED_RECEIVE,
+                        strlen(SOCKT_SERVER_FAILED_RECEIVE));
+                    if (FAILED(rc)) {
+                        LOGE(mModule, "Failed to send msg %s to client, %d",
+                            SOCKT_SERVER_FAILED_RECEIVE, rc);
+                    }
+                }
+            }
+
+            if (SUCCEED(rc)) {
+                rc = processRc = onClientSent(fd, privateMsg);
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed process received fd, %d", rc);
+                }
+            }
+
+            if (SUCCEED(rc)) {
+                std::string msg = SUCCEED(processRc) ?
+                    SOCKET_SERVER_PROCESSED : SOCKET_SERVER_PROCESS_FAILED;
+                rc = mSSSM.sendMsg(msg.c_str(), msg.length());
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to send msg %s to client, %d",
+                        msg.c_str(), rc);
+                }
+            }
+
+        } while (rc != USER_ABORTED);
+    }
+
+    if (SUCCEED(rc) || FAILED(rc)) {
+        close(clientfd);
+    }
+
+    return rc;
+}
+
+int32_t RequestHandler::revealPrivateArgFromMsg(
+    const char *msg, std::string &privateArg)
+{
+    int32_t rc = NO_ERROR;
+    std::vector<std::string> words;
+    std::string argStr;
+    privateArg = "";
+
+    if (SUCCEED(rc)) {
+        std::string str = msg;
+        std::regex wsre(" ");
+        std::vector<std::string> _words(
+            std::sregex_token_iterator(str.begin(), str.end(), wsre, -1),
+            std::sregex_token_iterator());
+        _words.erase(
+            std::remove_if(
+                _words.begin(), _words.end(),
+                [](std::string const &s) { return s.empty(); }),
+                _words.end());
+        words = _words;
+    }
+
+    if (SUCCEED(rc)) {
+        for (auto &&word : words) {
+            if (word[0] == "<" &&
+                word[word.length() - 1] == ">") {
+                privateArg = word;
             }
         }
-
-        if (SUCCEED(rc)) {
-            std::string msg = SUCCEED(processRc) ?
-                SOCKET_SERVER_PROCESSED : SOCKET_SERVER_PROCESS_FAILED;
-            rc = mSSSM.sendMsg(msg.c_str(), msg.length());
-            if (FAILED(rc)) {
-                LOGE(mModule, "Failed to send msg %s to client, %d",
-                    msg.c_str(), rc);
-            }
+        if (privateArg == "") {
+            LOGE(mModule, "Failed to convert msg to request type, %d", msg);
+            rc = PARAM_INVALID;
         }
-    } while (rc != USER_ABORTED);
-
-    close(clientfd);
+    }
 
     return rc;
 }
@@ -197,14 +280,6 @@ int32_t RequestHandler::construct()
 
     if (mConstructed) {
         rc = ALREADY_INITED;
-    }
-
-    if (SUCCEED(rc)) {
-        const std::string socketName = "socket_" + mName();
-        rc = mSSSM.construct(socketName.c_str());
-        if (FAILED(rc)) {
-            LOGE(mModule, "Failed to construct ssm, %d", rc);
-        }
     }
 
     if (SUCCEED(rc)) {

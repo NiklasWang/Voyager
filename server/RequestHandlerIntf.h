@@ -8,7 +8,7 @@ namespace voyager {
 class RequestHandlerIntf {
 public:
 
-    virtual int32_t onClientReady(int32_t clientfd, const std::string &privateMsg) = 0;
+    virtual int32_t onClientReady(const std::string &serverName, Semaphore &serverReadySem) = 0;
     virtual int32_t enqueue(void *dat) = 0;
     virtual int32_t enqueue(int32_t fd) = 0;
     virtual int32_t enqueue(void *dat, int32_t format) = 0;

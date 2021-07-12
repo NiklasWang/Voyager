@@ -146,66 +146,53 @@ int32_t ServerCore::startServerLoop()
     }
 
     if (SUCCEED(rc)) {
-        rc = mSS.sendMsg(SOCKET_START_REQUEST_CONNECTION,
-            strlen(SOCKET_START_REQUEST_CONNECTION));
+        rc = mSS.sendMsg(SOCKET_START_QUERY_REQUEST,
+            strlen(SOCKET_START_QUERY_REQUEST));
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
-                SOCKET_START_REQUEST_CONNECTION, rc);
+                SOCKET_START_QUERY_REQUEST, rc);
         }
     }
 
     if (SUCCEED(rc)) {
         do {
-            int32_t clientfd = -1;
             RequestType type = REQUEST_TYPE_MAX_INVALID;
-            std::string privateMsg;
+            Semaphore serverReadySem;
             RESETRESULT(rc);
 
             if (SUCCEED(rc)) {
-                rc = mSS.waitForConnect(&clientfd);
-                if (FAILED(rc)) {
-                    LOGE(mModule, "Failed to wait for client connection");
-                }
-                if (rc == USER_ABORTED) {
-                    LOGI(mModule, "Stop wait connect, aborted.");
-                    break;
-                }
-            }
-
-            if (SUCCEED(rc)) {
                 mSocketMsg[0] = '\0';
-                rc = mSS.receiveMsg(clientfd, mSocketMsg, sizeof(mSocketMsg));
+                rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
                 if (FAILED(rc)) {
                     LOGE(mModule, "Failed to receive msg, %d", rc);
                 }
             }
 
             if (SUCCEED(rc)) {
-                rc = revealRequestTypeAndPrivateArgFromMsg(mSocketMsg, type, privateMsg);
+                rc = revealRequestType(mSocketMsg, type);
                 if (FAILED(rc) ||
-                    type == REQUEST_TYPE_MAX_INVALID ||
-                    privateMsg == "") {
+                    type == REQUEST_TYPE_MAX_INVALID) {
                     LOGE(mModule, "Invalid socket msg, %s", mSocketMsg);
+                    rc = BAD_PROTOCOL;
                 }
             }
 
             if (SUCCEED(rc)) {
                 if (requested(type)) {
-                    rc = mSS.sendMsg(SOCKET_SERVER_REPLY_REQUEST_OK,
-                        strlen(SOCKET_SERVER_REPLY_REQUEST_OK));
+                    rc = mRequests[type]->onClientReady(serverReadySem);
                     if (FAILED(rc)) {
-                        LOGE(mModule, "Failed to send msg %s to client, %d",
-                            SOCKET_SERVER_REPLY_REQUEST_OK, rc);
+                        LOGE(mModule, "Failed to notify client ready to %s",
+                            rc, mRequests[type]->getName());
                     }
                 }
             }
 
             if (SUCCEED(rc)) {
                 if (requested(type)) {
-                    rc = mRequests[type]->onClientReady(clientfd, privateMsg);
+                    serverReadySem.wait();
+                    rc = replyClientRequestIsRequested();
                     if (FAILED(rc)) {
-                        LOGE(mModule, "Failed to notify client connected to %s",
-                            rc, mRequests[type]->getName());
+                        LOGE(mModule, "Failed to reply client not requested msg, %d", rc);
                     }
                 }
             }
@@ -278,6 +265,37 @@ int32_t ServerCore::shareOverallControl()
     return rc;
 }
 
+int32_t ServerCore::replyClientRequestIsRequested()
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        rc = mSS.sendMsg(SOCKET_SERVER_REPLY_REQUEST_OK,
+            strlen(SOCKET_SERVER_REPLY_REQUEST_OK));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg %s to client, %d",
+                SOCKET_SERVER_REPLY_REQUEST_OK, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mSocketMsg[0] = '\0';
+        rc = mSS.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from socket sm, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_CLIENT_SEND_REQUEST_DONE)) {
+            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    return rc;
+}
+
 int32_t ServerCore::replyClientRequestNotRequested()
 {
     int32_t rc = NO_ERROR;
@@ -309,18 +327,11 @@ int32_t ServerCore::replyClientRequestNotRequested()
     return rc;
 }
 
-int32_t ServerCore::revealRequestTypeAndPrivateArgFromMsg(
-    char *msg, RequestType &type, std::string &privateArg)
+int32_t ServerCore::revealRequestType(RequestType &type)
 {
     int32_t rc = NO_ERROR;
     std::vector<std::string> words;
     std::string typeStr;
-    std::string privateMsgStr;
-
-    if (SUCCEED(rc)) {
-        type = REQUEST_TYPE_MAX_INVALID;
-        privateArg = "";
-    }
 
     if (SUCCEED(rc)) {
         std::string str = msg;
@@ -337,33 +348,22 @@ int32_t ServerCore::revealRequestTypeAndPrivateArgFromMsg(
     }
 
     if (SUCCEED(rc)) {
-        bool first = true;
         for (auto &&word : words) {
             if (word[0] == "<" &&
                 word[word.length() - 1] == ">") {
-                if (first) {
-                    typeStr = word;
-                    first = false;
-                } else {
-                    privateMsgStr = word;
-                    break;
-                }
+                typeStr = word;
             }
         }
     }
 
     if (SUCCEED(rc)) {
         int32_t value = atoi(typeStr.c_str());
-        if (!checkValid(static_cast<RequestType>(value)) ||
-            privateMsgStr == "") {
+        if (!checkValid(static_cast<RequestType>(value))) {
             LOGE(mModule, "Failed to convert msg to request type, %d", value);
             rc = PARAM_INVALID;
+        } else {
+            type = static_cast<RequestType>(value);
         }
-    }
-
-    if (SUCCEED(rc)) {
-        type = atoi(typeStr.c_str());
-        privateArg = privateMsg;
     }
 
     return rc;

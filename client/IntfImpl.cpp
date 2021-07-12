@@ -4,10 +4,10 @@ namespace voyager {
 
 static const char * const gRequestTypeStr[] = {
     [DATA]  = "data",
-    [FD]    = "file descriptor",
+    [FD]    = "file_descriptor",
     [FRAME] = "frame",
     [EVENT] = "event",
-    [REQUEST_TYPE_MAX_INVALID] = "jpg",
+    [REQUEST_TYPE_MAX_INVALID] = "MAX_INVALID",
 };
 
 bool checkValid(RequestType type)

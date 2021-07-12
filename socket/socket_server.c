@@ -45,7 +45,9 @@ int32_t start_server(int32_t *socketfd, const char *socketName)
         memset((unsigned char *)&server_addr, 0, sizeof(server_addr));
         server_addr.sun_family = AF_UNIX;
         strcpy(server_addr.sun_path, SERVER_SOCKET_PATH);
+        strcat(server_addr.sun_path, "/");
         strcat(server_addr.sun_path, socketName);
+        strcat(server_addr.sun_path, SOCKET_FILE_EXTENSION);
         addr_len = strlen(server_addr.sun_path) + sizeof(server_addr.sun_family);
         LOGD(MODULE_SOCKET,
             "Connection socket name %s", server_addr.sun_path);
@@ -214,7 +216,9 @@ int32_t stop_server(int32_t sockfd, const char *socketName)
     close(sockfd);
 
     strcpy(path, SERVER_SOCKET_PATH);
+    strcat(path, "/");
     strcat(path, socketName);
+    strcat(path, SOCKET_FILE_EXTENSION);
     if (!access(path, F_OK)) {
         unlink(path);
     }

@@ -42,18 +42,18 @@ private:
     int32_t startServerLoop();
     int32_t exitServerLoop();
     int32_t shareOverallControl();
-    int32_t replyClientRequestNotRequested();
     int32_t request(RequestType type);
     template <typename T>
     int32_t request(T cbFunc, RequestType type);
     int32_t createRequestHandler(RequestType type);
     RequestHandler *createHandler(RequestType type);
     int32_t abort(RequestType type);
-    int32_t enableAllRequestedRequests();
-    int32_t revealRequestTypeAndPrivateArgFromMsg(
-        char *msg, RequestType &type, std::string &privateArg);
     bool    validFd(int32_t fd);
     bool    requested(RequestType type);
+    int32_t enableAllRequestedRequests();
+    int32_t revealRequestType(RequestType &type);
+    int32_t replyClientRequestIsRequested();
+    int32_t replyClientRequestNotRequested();
 
 private:
     bool                     mConstructed;

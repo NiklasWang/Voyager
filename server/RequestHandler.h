@@ -16,7 +16,7 @@ class RequestHandler :
     public noncopyable {
 public:
 
-    virtual int32_t onClientReady(int32_t clientfd, const std::string &privateMsg) override;
+    virtual int32_t onClientReady(const std::string &serverName, Semaphore &serverReadySem) override;
     virtual int32_t enqueue(int32_t fd) override;
     virtual int32_t enqueue(void *dat) = 0;
     virtual int32_t enqueue(void *dat, int32_t format) = 0;
@@ -33,8 +33,9 @@ public:
 
 protected:
     virtual int32_t onClientSent(int32_t fd, const std::string &privateMsg) = 0;
-    virtual int32_t startServerLoop(int32_t clientfd, const std::string &privateMsg);
+    virtual int32_t startServerLoop(Semaphore &clientReadySem);
     virtual int32_t exitServerLoop();
+    int32_t revealPrivateArgFromMsg(const char *msg, std::string &privateArg);
     bool checkFdExists(int32_t fd);
     bool checkFdExists(void *ptr);
     void addFdRecord(int32_t fd);
