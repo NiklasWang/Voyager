@@ -1,51 +1,48 @@
 #ifndef _VOYAGER_CLIENT_CORE_H_
 #define _VOYAGER_CLIENT_CORE_H_
 
-#include "common.h"
-#include "SiriusServerIntf.h"
-#include "ServerClientControl.h"
-#include "BufferMgrIntf.h"
-#include "HandlerOpsIntf.h"
+#include "Common.h"
+#include "ClientIntf.h"
+#include "BufferMgr.h"
+#include "OverallControlSingleton.h"
 #include "SocketClientStateMachine.h"
+#include "RequestHandler.h"
 
 namespace voyager {
 
-class SiriusClientCore :
+class ClientCore :
+    public ClientIntf,
+    public Identifier,
     public noncopyable {
 public:
-    int32_t prepare();
-    bool ready();
-    int32_t update(Header &header);
 
-    bool requested(RequestType type);
-    int32_t importBuf(void **buf, int32_t fd, int32_t len);
-    int32_t flushBuf(void *buf);
-    int32_t releaseBuf(void *buf);
-    int32_t getUsedMem(RequestType type, int32_t *fd);
-    int32_t setMemStatus(RequestType type, int32_t fd, bool fresh = USED_MEMORY);
-    int32_t getMemStatus(RequestType type, int32_t fd, bool *fresh);
-    int32_t getMemSize(RequestType type, int32_t *size);
+    virtual int32_t send(void *dat, int64_t len) override;
+    virtual int32_t send(int32_t fd, int64_t len) override;
+    virtual int32_t send(void *dat, int64_t len, int32_t format) override;
+    virtual int32_t send(int32_t event, int32_t arg1, int32_t arg2) override;
+    virtual bool    requested(RequestType type) override;
 
 public:
     int32_t construct();
     int32_t destruct();
-    SiriusClientCore();
-    virtual ~SiriusClientCore();
+    ClientCore();
+    virtual ~ClientCore();
 
 private:
-    bool           mConstructed;
-    ModuleType     mModule;
-    bool           mConnected;
-    bool           mReady;
-    BufferMgrIntf *mBufMgr;
-    void          *mCtlBuf;
-    ServerClientControl      mCtl;
-    pthread_mutex_t          mLocker;
+    int32_t connectServer();
+    int32_t importOverallControl();
+    int32_t createHandlerIfRequired(RequestType type);
+    RequestHandler *createHandler(RequestType type, const std::string &name);
+    int32_t setOverallControlMemory(int32_t fd);
+
+private:
+    std::string mName;
+    bool        mConstructed;
+    bool        mConnected;
     SocketClientStateMachine mSC;
-
-private:
-    static Header  kHeader;
-    static bool    kHeaderInited;
+    bool        mSkipOverallControl;
+    OverallControlSingleton *mOverallControlSingleton;
+    RequestHandler *mRequests[REQUEST_TYPE_MAX_INVALID];
 };
 
 };

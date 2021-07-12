@@ -1,31 +1,360 @@
-#include "BufferMgr.h"
-#include "SiriusClientCore.h"
+#include "ClientCore.h"
 
 namespace voyager {
 
-bool SiriusClientCore::kHeaderInited = false;
-Header SiriusClientCore::kHeader;
-
-SiriusClientCore::SiriusClientCore() :
-    mConstructed(false),
-    mModule(MODULE_VOYAGER_CLIENT_CORE),
-    mConnected(false),
-    mReady(false),
-    mBufMgr(NULL)
+int32_t ClientCore::send(void *dat, int64_t len)
 {
-    pthread_mutex_init(&mLocker, NULL);
-}
+    int32_t rc = NO_ERROR;
 
-SiriusClientCore::~SiriusClientCore()
-{
-    if (mConstructed) {
-        destruct();
+    if (SUCCEED(rc)) {
+        rc = createHandlerIfRequired(DATA);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to create data client, %d", rc);
+        }
     }
-    pthread_mutex_destroy(&mLocker);
+
+    if (SUCCEED(rc)) {
+        RequestHandler *handler = mRequests[DATA];
+        if (NOTNULL(handler))
+        rc = handler->send(dat, len);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Send data %p %d failed, %d", dat, len, rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t ClientCore::send(int32_t fd, int64_t len)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        rc = createHandlerIfRequired(FD);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to create fd client, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        RequestHandler *handler = mRequests[FD];
+        if (NOTNULL(handler))
+        rc = handler->send(fd, len);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Send fd %d %d failed, %d", fd, len, rc);
+        }
+    }
+
+    return rc;
 }
 
 
-int32_t SiriusClientCore::construct()
+int32_t ClientCore::send(void *dat, int64_t len, int32_t format)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        rc = createHandlerIfRequired(FRAME);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to create frame client, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        RequestHandler *handler = mRequests[FRAME];
+        if (NOTNULL(handler))
+        rc = handler->send(dat, len);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Send frame %p %d %d failed, %d", dat, len, format, rc);
+        }
+    }
+
+    return rc;
+}
+
+
+int32_t ClientCore::send(int32_t event, int32_t arg1, int32_t arg2)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        rc = createHandlerIfRequired(EVENT);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to create event client, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        RequestHandler *handler = mRequests[EVENT];
+        if (NOTNULL(handler))
+        rc = handler->send(event, arg1, arg2);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Send event %d %d %d failed, %d", event, arg1, arg2, rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t ClientCore::createHandlerIfRequired(RequestType type)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (!requested(type)) {
+            LOGI(mModule, "%s not requested.", getRequestName(type));
+            rc = NOT_REQUIRED;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (ISNULL(mRequests[type])) {
+            mRequests[type] = createClientRequestHandler(type, mName);
+            if (ISNULL(mRequests[type])) {
+                LOGE(mModule, "Failed to create %s client.",
+                    getRequestName(type));
+                rc = NO_MEMORY;
+            } else {
+                rc = mRequests[type]->construct();
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to construct %s client, %d",
+                        getRequestName(type), rc);
+                }
+            }
+        }
+    }
+
+    return rc;
+}
+
+int32_t ClientCore::connectServer()
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (mConnected) {
+            LOGE(mModule, "Already connected to %s", mName.c_str());
+            rc = ALREADY_EXISTS;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.connectServer();
+        if (FAILED(rc)) {
+            LOGD(mModule, "Failed to connect server %s, may not started, "
+                "%s %d", mName.c_str(), strerror(errno), rc);
+            rc = NOT_EXIST;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(SOCKET_CLIENT_GREETING_STR,
+            strlen(SOCKET_CLIENT_GREETING_STR));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                SOCKET_CLIENT_GREETING_STR, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mConnected = true;
+    }
+
+    return rc;
+}
+
+bool ClientCore::requested(RequestType type)
+{
+    int32_t rc = NO_ERROR;
+    bool result = false;
+    char socketMsg[SOCKET_DATA_MAX_LEN];
+
+    if (SUCCEED(rc)) {
+        if (!mConnected) {
+            AutoMutex mutex;
+            if (!mConnected) {
+                rc = connectServer();
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to import overall control, %d", rc);
+                }
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (ISNULL(mOverallControlSingleton) && !mSkipOverallControl) {
+            AutoMutex mutex;
+            if (ISNULL(mOverallControlSingleton) && !mSkipOverallControl) {
+                rc = importOverallControl();
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to import overall control, %d", rc);
+                }
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        std::string msg = SOCKET_CLIENT_QUERY_REQUEST;
+        msg.replace("%TYPE%", std::to_string(type));
+        rc = mSC.sendMsg(msg.c_str(), msg.length());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                msg.c_str(), rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        socketMsg[0] = '\0';
+        rc = mSC.receiveMsg(socketMsg, sizeof(socketMsg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from server, %d", rc);
+        } else {
+            result = COMPARE_SAME_STRING(socketMsg, SOCKET_SERVER_REPLY_REQUEST_OK);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        std::string msg = SOCKET_CLIENT_SEND_REQUEST_DONE;
+        rc = mSC.sendMsg(msg.c_str(), msg.length());
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                msg.c_str(), rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t ClientCore::importOverallControl()
+{
+    int32_t rc = NO_ERROR;
+    int32_t overallControlFd;
+    int32_t size = 0;
+    bool locked  = false;
+    char msg[SOCKET_DATA_MAX_LEN];
+
+    if (SUCCEED(rc)) {
+        if (NOTNULL(mOverallControlSingleton) || mSkipOverallControl) {
+            LOGE(mModule, "Overall control already imported or skipped.");
+            rc = ALREADY_EXISTS;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        msg[0] = '\0';
+        rc = mSC.receiveMsg(msg, sizeof(msg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from server %s, %d",
+                mName.c_str(), rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (COMPARE_SAME_STRING(msg, SOCKET_START_QUERY_REQUEST)) {
+            LOGI(mModule, "Skip overall control share.");
+            mSkipOverallControl = true;
+            rc = JUMP_DONE;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(msg, SOCKET_REPLY_OVERALL_CONTROL)) {
+            LOGE(mModule, "Wrong msg received, %s.", msg);
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(SOCKET_REPLY_OVERALL_CONTROL,
+            strlen(SOCKET_REPLY_OVERALL_CONTROL));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                SOCKET_REPLY_OVERALL_CONTROL, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.receiveFd(&overallControlFd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive fd from server %s, %d", mName.c_str(), rc);
+        }
+        if (overallControlFd == -1) {
+            LOGE(mModule, "Invalid fd received from server %s", mName.c_str());
+            rc = mSC.sendMsg(SOCKET_DONE_OVERALL_CONTROL,
+                strlen(SOCKET_DONE_OVERALL_CONTROL));
+            if (FAILED(rc)) {
+                LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                    SOCKET_DONE_OVERALL_CONTROL, rc);
+            }
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = setOverallControlMemory(overallControlFd);
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to set overall control, %d", rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mSC.sendMsg(SOCKET_DONE_OVERALL_CONTROL,
+            strlen(SOCKET_DONE_OVERALL_CONTROL));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
+                SOCKET_DONE_OVERALL_CONTROL, rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        msg[0] = '\0';
+        rc = mSC.receiveMsg(msg, sizeof(msg));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to receive msg from server %s, %d",
+                mName.c_str(), rc);
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        if (!COMPARE_SAME_STRING(msg, SOCKET_START_QUERY_REQUEST)) {
+            LOGI(mModule, "Invalid msg %s received.", msg);
+            rc = BAD_PROTOCOL;
+        }
+    }
+
+    return RETURNIGNORE(rc, JUMP_DONE);
+}
+
+int32_t ClientCore::setOverallControlMemory(int32_t fd)
+{
+    int32_t rc = NO_ERROR;
+
+    if (SUCCEED(rc)) {
+        if (NOTNULL(mOverallControlSingleton)) {
+            LOGE(mModule, "Overall control already exist.");
+            rc = ALREADY_EXISTS;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        mOverallControlSingleton = OverallControlSingleton::getInstance();
+        if (ISNULL(mOverallControlSingleton)) {
+            LOGE(mModule, "Failed to create overall control singleton.");
+            rc = NO_MEMORY;
+        }
+    }
+
+    if (SUCCEED(rc)) {
+        rc = mOverallControlSingleton->import(fd, sizeof(OverallControlLayout));
+        if (FAILED(rc)) {
+            LOGE(mModule, "Failed to import fd %d to overall control, %d", fd, rc);
+        }
+    }
+
+    return rc;
+}
+
+int32_t ClientCore::construct()
 {
     int32_t rc = NO_ERROR;
 
@@ -35,170 +364,21 @@ int32_t SiriusClientCore::construct()
     }
 
     if (SUCCEED(rc)) {
-        mBufMgr = new BufferMgr();
-        if (ISNULL(mBufMgr)) {
-            rc = NO_MEMORY;
-            LOGE(mModule, "Failed to new buffer manager.");
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mBufMgr->init();
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to init buf manager, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.construct();
-        if (!SUCCEED(rc)) {
+        rc = mSC.construct((mName + SOCKET_SUFFIX_AFTER_SERVER_NAME).c_str());
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct ssm, %d", rc);
         }
     }
 
     if (SUCCEED(rc)) {
         mConstructed = true;
-        LOGD(mModule, "Sirius client core constructed");
+        LOGD(mModule, "Client core constructed");
     }
 
     return rc;
  }
 
-int32_t SiriusClientCore::prepare()
-{
-    int32_t rc = NO_ERROR;
-    int32_t fd = -1;
-    int32_t size = 0;
-    bool locked  = false;
-    char mSocketMsg[SOCKET_DATA_MAX_LEN];
-
-    if (SUCCEED(rc)) {
-        if (!kHeaderInited) {
-            LOGE(mModule, "Please update voyager client core first.");
-            rc = NOT_INITED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (mReady) {
-            LOGE(mModule, "Already prepared.");
-            rc = ALREADY_INITED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        pthread_mutex_lock(&mLocker);
-        locked = true;
-        if (mReady) {
-            rc = ALREADY_INITED;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!mConnected) {
-            rc = mSC.connectServer();
-            if (!SUCCEED(rc)) {
-                LOGD(mModule, "Failed to connect server, "
-                    "may not started, %s %d", strerror(errno), rc);
-                rc = NOT_EXIST;
-            } else {
-                mConnected = true;
-            }
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.sendMsg(SOCKET_CLIENT_GREETING_STR,
-            strlen(SOCKET_CLIENT_GREETING_STR));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
-                SOCKET_CLIENT_GREETING_STR, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mSC.receiveFd(&fd);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to receive fd from server, %d", rc);
-        }
-        if (fd == -1) {
-            LOGE(mModule, "Invalid fd received from server");
-            rc = BAD_PROTOCAL;
-        }
-    }
-    if (SUCCEED(rc)) {
-        rc = mSC.sendMsg(SOCKET_CLIENT_REPLY_STR,
-            strlen(SOCKET_CLIENT_REPLY_STR));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
-                SOCKET_CLIENT_REPLY_STR, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mSocketMsg[0] = '\0';
-        rc = mSC.receiveMsg(mSocketMsg, sizeof(mSocketMsg));
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
-                SOCKET_CLIENT_REPLY_STR, rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        if (!COMPARE_SAME_STRING(mSocketMsg, SOCKET_CLIENT_REPLY_STR)) {
-            LOGE(mModule, "Unknown msg received, \"%s\"", mSocketMsg);
-            rc = NOT_READY;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        size = mCtl.getTotoalSize();
-        if (size <= 0) {
-            LOGE(mModule, "Invalid control blcok size %d", size);
-            rc = PARAM_INVALID;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mBufMgr->import(&mCtlBuf, fd, size);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to import %d bytes memory %d, %d",
-                size, fd, rc);
-        }
-        if (ISNULL(mCtlBuf)) {
-            LOGE(mModule, "Invalid import memory result.");
-            rc = NO_MEMORY;
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mCtl.init(mCtlBuf, size, false);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set memory to controller, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = mCtl.setHeader(kHeader);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set header to controller, %d", rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mReady = true;
-    }
-
-    if (SUCCEED(rc) || !SUCCEED(rc)) {
-        if (locked) {
-            pthread_mutex_unlock(&mLocker);
-        }
-    }
-
-    return rc;
-}
-
-int32_t SiriusClientCore::destruct()
+int32_t ClientCore::destruct()
 {
     int32_t rc = NO_ERROR;
     int32_t final = rc;
@@ -210,110 +390,59 @@ int32_t SiriusClientCore::destruct()
     }
 
     if (SUCCEED(rc)) {
+        for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
+            RequestHandler *handler = mRequests[static_cast<RequestType>(i)];
+            if (NOTNULL(handler)) {
+                rc = handler->destruct();
+                if (FAILED(rc)) {
+                    LOGE(mModule, "Failed to destruct %s client, %d",
+                        getRequestName(static_cast<RequestType>(i)), rc);
+                }
+            }
+        }
+    }
+
+    if (SUCCEED(rc)) {
         rc = mSC.destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             final |= rc;
             LOGE(mModule, "Failed to destruct socket state machine, %d", rc);
             RESETRESULT(rc);
         }
     }
 
-
     if (SUCCEED(rc)) {
-        rc = releaseBuf(mCtlBuf);
-        if (!SUCCEED(rc)) {
-            final |= rc;
-            LOGE(mModule, "Failed to release all mems, %d", rc);
-            RESETRESULT(rc);
+        if (NOTNULL(mOverallControlSingleton)) {
+            mOverallControlSingleton->removeInstance();
         }
     }
 
-    if (SUCCEED(rc)) {
-        mBufMgr->clear_all();
-        rc = mBufMgr->deinit();
-        if (!SUCCEED(rc)) {
-            final |= rc;
-            LOGE(mModule, "Failed to deinit ion buf mgr, %d", rc);
-            RESETRESULT(rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        mReady = false;
-        mConnected = false;
-    }
-
-    if (!SUCCEED(final)) {
-        LOGE(mModule, "Sirius client core destructed with error %d", final);
+    if (FAILED(final)) {
+        LOGE(mModule, "Client core destructed with error %d", final);
     } else {
-        LOGD(mModule, "Sirius client core destructed");
-    }
-
-    return rc;
-
-}
-
-int32_t SiriusClientCore::update(Header &header)
-{
-    int32_t rc = NO_ERROR;
-
-    kHeader = header;
-    kHeaderInited = true;
-
-    if (ready()) {
-        rc = mCtl.setHeader(kHeader);
-        if (!SUCCEED(rc)) {
-            LOGE(mModule, "Failed to set header to controller, %d", rc);
-        }
+        LOGD(mModule, "Client core destructed");
     }
 
     return rc;
 }
 
-bool SiriusClientCore::ready()
+ClientCore::ClientCore(const char *name) :
+    Identifier(MODULE_CLIENT_CORE, "ClientCore", "1.0.0")
+    mConstructed(false),
+    mConnected(false),
+    mSkipOverallControl(false),
+    mOverallControlSingleton(nullptr)
 {
-    return mReady;
+    for (int32_t i = 0; i < REQUEST_TYPE_MAX_INVALID; i++) {
+        mRequests[i] = nullptr;
+    }
 }
 
-bool SiriusClientCore::requested(RequestType type)
+ClientCore::~ClientCore()
 {
-    return ready() && mCtl.requested(type);
-}
-
-int32_t SiriusClientCore::importBuf(void **buf, int32_t fd, int32_t len)
-{
-    return mBufMgr->import(buf, fd, len);
-}
-
-int32_t SiriusClientCore::flushBuf(void *buf)
-{
-    return mBufMgr->flush(buf);
-}
-
-int32_t SiriusClientCore::releaseBuf(void *buf)
-{
-    return mBufMgr->release_remove(buf);
-}
-
-int32_t SiriusClientCore::getUsedMem(RequestType type, int32_t *fd)
-{
-    return mCtl.getUsedMem(type, fd);
-}
-
-int32_t SiriusClientCore::setMemStatus(RequestType type, int32_t fd, bool fresh)
-{
-    return mCtl.setMemStatus(type, fd, fresh);
-}
-
-int32_t SiriusClientCore::getMemStatus(RequestType type, int32_t fd, bool *fresh)
-
-{
-    return mCtl.getMemStatus(type, fd, fresh);
-}
-
-int32_t SiriusClientCore::getMemSize(RequestType type, int32_t *size)
-{
-    return mCtl.getMemSize(type, size);
+    if (mConstructed) {
+        destruct();
+    }
 }
 
 };
