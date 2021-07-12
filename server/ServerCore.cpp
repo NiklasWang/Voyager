@@ -616,12 +616,12 @@ int32_t ServerCore::abort(RequestType type)
 }
 
 template <typename T>
-int32_t ServerCore::request(T cbFunc, RequestType type)
+int32_t ServerCore::request(T cbFunc, RequestType type, SyncMode mode)
 {
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        rc = mCb.set(cbFunc);
+        rc = mCb.set(cbFunc, mode);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to set cb thread, %d", rc);
         }
@@ -650,24 +650,24 @@ int32_t ServerCore::request(T cbFunc, RequestType type)
     return rc;
 }
 
-int32_t ServerCore::request(DataCbFunc dataCbFunc)
+int32_t ServerCore::request(DataCbFunc dataCbFunc, SyncMode mode)
 {
-    return request<DataCbFunc>(dataCbFunc, DATA);
+    return request<DataCbFunc>(dataCbFunc, DATA, mode);
 }
 
-int32_t ServerCore::request(FdCbFunc fdCbFunc)
+int32_t ServerCore::request(FdCbFunc fdCbFunc, SyncMode mode)
 {
-    return request<FdCbFunc>(fdCbFunc, FD);
+    return request<FdCbFunc>(fdCbFunc, FD, mode);
 }
 
-int32_t ServerCore::request(FrameCbFunc frameCbFunc)
+int32_t ServerCore::request(FrameCbFunc frameCbFunc, SyncMode mode)
 {
-    return request<FrameCbFunc>(frameCbFunc, FRAME);
+    return request<FrameCbFunc>(frameCbFunc, FRAME, mode);
 }
 
-int32_t ServerCore::request(EventCbFunc eventCbFunc)
+int32_t ServerCore::request(EventCbFunc eventCbFunc, SyncMode mode)
 {
-    return request<EventCbFunc>(eventCbFunc, EVENT);
+    return request<EventCbFunc>(eventCbFunc, EVENT, mode);
 }
 
 int32_t ServerCore::enqueue(void *dat)

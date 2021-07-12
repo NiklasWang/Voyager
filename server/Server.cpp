@@ -45,10 +45,10 @@ namespace voyager {
         __rc; \
     })
 
-int32_t Server::request(DataCbFunc dataCbFunc)
+int32_t Server::request(DataCbFunc dataCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->request(dataCbFunc) : rc;
+    return SUCCEED(rc) ? mImpl->request(dataCbFunc, mode) : rc;
 }
 
 int32_t Server::enqueue(void *dat)
@@ -57,10 +57,10 @@ int32_t Server::enqueue(void *dat)
     return SUCCEED(rc) ? mImpl->enqueue(dat) : rc;
 }
 
-int32_t Server::request(FdCbFunc fdCbFunc)
+int32_t Server::request(FdCbFunc fdCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->request(fdCbFunc) : rc;
+    return SUCCEED(rc) ? mImpl->request(fdCbFunc, mode) : rc;
 }
 
 int32_t Server::enqueue(int32_t fd)
@@ -69,10 +69,10 @@ int32_t Server::enqueue(int32_t fd)
     return SUCCEED(rc) ? mImpl->enqueue(fd) : rc;
 }
 
-int32_t Server::request(FrameCbFunc frameCbFunc)
+int32_t Server::request(FrameCbFunc frameCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->request(frameCbFunc) : rc;
+    return SUCCEED(rc) ? mImpl->request(frameCbFunc, mode) : rc;
 }
 
 int32_t Server::enqueue(void *dat, int32_t format)
@@ -81,10 +81,10 @@ int32_t Server::enqueue(void *dat, int32_t format)
     return SUCCEED(rc) ? mImpl->enqueue(dat, format) : rc;
 }
 
-int32_t Server::request(EventCbFunc eventCbFunc)
+int32_t Server::request(EventCbFunc eventCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->request(eventCbFunc) : rc;
+    return SUCCEED(rc) ? mImpl->request(eventCbFunc, mode) : rc;
 }
 
 int32_t Server::cancel(RequestType type)

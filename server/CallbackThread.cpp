@@ -8,7 +8,7 @@ int32_t CallbackThread::send(void *dat, int64_t len)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        rc = mThreads->run(
+        auto func =
             [=]() -> int32_t {
                 int32_t _rc = NO_ERROR;
                 if (NOTNULL(mDataCbFunc)) {
@@ -19,8 +19,10 @@ int32_t CallbackThread::send(void *dat, int64_t len)
                     _rc = NOT_INITED;
                 }
                 return _rc;
-            }
-        );
+            };
+        rc = (mDataCbSyncMode == SYNC)
+            ? mThreads->runWait(func)
+            : mThreads->run(func);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send request, %d", rc);
         }
@@ -34,7 +36,7 @@ int32_t CallbackThread::send(int32_t fd, int64_t len)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        rc = mThreads->run(
+        auto func =
             [=]() -> int32_t {
                 int32_t _rc = NO_ERROR;
                 if (NOTNULL(mFdCbFunc)) {
@@ -46,7 +48,9 @@ int32_t CallbackThread::send(int32_t fd, int64_t len)
                 }
                 return _rc;
             }
-        );
+        rc = (mDataCbSyncMode == SYNC)
+            ? mThreads->runWait(func)
+            : mThreads->run(func);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send request, %d", rc);
         }
@@ -60,7 +64,7 @@ int32_t CallbackThread::send(void *dat, int64_t len, int32_t format)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        rc = mThreads->runWait(
+        auto func =
             [=]() -> int32_t {
                 int32_t _rc = NO_ERROR;
                 if (NOTNULL(mFrameCbFunc)) {
@@ -71,8 +75,10 @@ int32_t CallbackThread::send(void *dat, int64_t len, int32_t format)
                     _rc = NOT_INITED;
                 }
                 return _rc;
-            }
-        );
+            };
+        rc = (mDataCbSyncMode == SYNC)
+            ? mThreads->runWait(func)
+            : mThreads->run(func);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send data, %d", rc);
         }
@@ -86,7 +92,7 @@ int32_t CallbackThread::send(int32_t event, int32_t arg1, int32_t arg2)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        rc = mThreads->run(
+        auto func =
             [=]() -> int32_t {
                 int32_t _rc = NO_ERROR;
                 if (NOTNULL(mEvtCbFunc)) {
@@ -97,8 +103,10 @@ int32_t CallbackThread::send(int32_t event, int32_t arg1, int32_t arg2)
                     _rc = NOT_INITED;
                 }
                 return _rc;
-            }
-        );
+            };
+        rc = (mDataCbSyncMode == SYNC)
+            ? mThreads->runWait(func)
+            : mThreads->run(func);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send event, %d", rc);
         }
@@ -107,36 +115,48 @@ int32_t CallbackThread::send(int32_t event, int32_t arg1, int32_t arg2)
     return rc;
 }
 
-int32_t CallbackThread::set(DataCbFunc dataCb)
+int32_t CallbackThread::set(DataCbFunc dataCb, SyncMode mode)
 {
     mDataCbFunc = dataCb;
+    mDataCbSyncMode= mode;
+
     return NO_ERROR;
 }
 
-int32_t CallbackThread::set(FdCbFunc fdCb)
+int32_t CallbackThread::set(FdCbFunc fdCb, SyncMode mode)
 {
     mFdCbFunc = fdCb;
+    mFdCbSyncMode = mode;
+
     return NO_ERROR;
 }
 
-int32_t CallbackThread::set(FrameCbFunc frameCb)
+int32_t CallbackThread::set(FrameCbFunc frameCb, SyncMode mode)
 {
     mFrameCbFunc = frameCb;
+    mFrameCbSyncMode = mode;
+
     return NO_ERROR;
 }
 
-int32_t CallbackThread::set(EventCbFunc eventCb)
+int32_t CallbackThread::set(EventCbFunc eventCb, SyncMode mode)
 {
     mEventCbFunc = eventCb;
+    mEventCbSyncMode = mode;
+
     return NO_ERROR;
 }
 
 CallbackThread::CallbackThread() :
     mConstructed(false),
     mDataCbFunc(nullptr),
+    mDataCbSyncMode(ASYNC),
     mFdCbFunc(nullptr),
+    mFdCbSyncMode(ASYNC),
     mFrameCbFunc(nullptr),
+    mFrameCbSyncMode(ASYNC),
     mEventCbFunc(nullptr),
+    mEventCbSyncMode(ASYNC),
     mThreads(nullptr),
     mDataCnt(0),
     mFdCnt(0),

@@ -25,10 +25,10 @@ public:
     int32_t send(int32_t fd, int64_t len) override;
     int32_t send(void *dat, int64_t len, int32_t format) override;
     int32_t send(int32_t event, int32_t arg1, int32_t arg2) override;
-    int32_t set(DataCbFunc dataCb);
-    int32_t set(FdCbFunc fdCb);
-    int32_t set(FrameCbFunc frameCb);
-    int32_t set(EventCbFunc eventCb);
+    int32_t set(DataCbFunc dataCb, SyncMode mode);
+    int32_t set(FdCbFunc fdCb, SyncMode mode);
+    int32_t set(FrameCbFunc frameCb, SyncMode mode);
+    int32_t set(EventCbFunc eventCb, SyncMode mode);
 
 public:
     CallbackThread();
@@ -41,9 +41,13 @@ public:
 private:
     bool          mConstructed;
     DataCbFunc    mDataCbFunc;
+    SyncMode      mDataCbSyncMode;
     FdCbFunc      mFdCbFunc;
+    SyncMode      mFdCbSyncMode;
     FrameCbFunc   mFrameCbFunc;
+    SyncMode      mFrameCbSyncMode;
     EventCbFunc   mEventCbFunc;
+    SyncMode      mEventCbSyncMode;
     ThreadPoolEx *mThreads;
     uint32_t      mDataCnt;
     uint32_t      mFdCnt;

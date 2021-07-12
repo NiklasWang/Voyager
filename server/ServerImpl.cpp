@@ -220,59 +220,71 @@ const ServerImpl::PushToThreadFunc
         } \
     } while(0)
 
-int32_t ServerImpl::request(DataCbFunc dataCbFunc)
+int32_t ServerImpl::request(DataCbFunc dataCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL();
 
     RequestInfo request = {
         .type = DATA,
+        .sync = mode,
         .cb = {
             .dataCb = dataCbFunc,
         },
     }
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
+        : NO_ERROR;
 }
 
-int32_t ServerImpl::request(FdCbFunc fdCbFunc)
+int32_t ServerImpl::request(FdCbFunc fdCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL();
 
     RequestInfo request = {
         .type = FD,
+        .sync = mode,
         .cb = {
             .fdCb = fdCbFunc,
         },
     }
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
+        : NO_ERROR;
 }
 
-int32_t ServerImpl::request(FrameCbFunc frameCbFunc)
+int32_t ServerImpl::request(FrameCbFunc frameCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL();
     RequestInfo request = {
         .type = FRAME,
+        .sync = mode,
         .cb = {
             .frameCb = frameCbFunc,
         },
     }
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
+        : NO_ERROR;
 }
 
-int32_t ServerImpl::request(EventCbFunc eventCbFunc)
+int32_t ServerImpl::request(EventCbFunc eventCbFunc, SyncMode mode)
 {
     int32_t rc = CONSTRUCT_IMPL();
 
     RequestInfo request = {
         .type = EVENT,
+        .sync = mode,
         .cb = {
             .eventCb = eventCbFunc,
         },
     }
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
+        : NO_ERROR;
 }
 
 int32_t ServerImpl::cancel(RequestType type)
@@ -372,16 +384,16 @@ int32_t ServerImpl::coreRequest(void *_request)
     if (SUCCEED(rc)) {
         switch (info.type) {
             case DATA : {
-                rc = mCore->request(info.cb.dataCb);
+                rc = mCore->request(info.cb.dataCb, info.sync);
             }; break;
             case FD : {
-                rc = mCore->request(info.cb.fdCb);
+                rc = mCore->request(info.cb.fdCb, info.sync);
             }; break;
             case FRAME : {
-                rc = mCore->request(info.cb.frameCb);
+                rc = mCore->request(info.cb.frameCb, info.sync);
             }; break;
             case EVENT : {
-                rc = mCore->request(info.cb.eventCb);
+                rc = mCore->request(info.cb.eventCb, info.sync);
             }; break;
             case REQUEST_TYPE_MAX_INVALID : {
                 LOGE(mModule, "Invalid request %d", info.type);

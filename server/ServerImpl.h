@@ -16,13 +16,13 @@ class ServerImpl :
     public noncopyable  {
 public:
 
-    virtual int32_t request(DataCbFunc dataCbFunc) override;
+    virtual int32_t request(DataCbFunc dataCbFunc, SyncMode mode) override;
     virtual int32_t enqueue(void *dat) override;
-    virtual int32_t request(FdCbFunc fdCbFunc) override;
+    virtual int32_t request(FdCbFunc fdCbFunc, SyncMode mode) override;
     virtual int32_t enqueue(int32_t fd) override;
-    virtual int32_t request(FrameCbFunc frameCbFunc) override;
+    virtual int32_t request(FrameCbFunc frameCbFunc, SyncMode mode) override;
     virtual int32_t enqueue(void *dat, int32_t format) override;
-    virtual int32_t request(EventCbFunc eventCbFunc) override;
+    virtual int32_t request(EventCbFunc eventCbFunc, SyncMode mode) override;
     virtual int32_t cancel(RequestType type) override;
 
 private:
@@ -44,6 +44,7 @@ private:
 
     struct RequestInfo {
         RequestType type;
+        SyncMode sync;
         union Cb {
             DataCbFunc  dataCb;
             FdCbFunc    fdCb;
