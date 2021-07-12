@@ -65,7 +65,7 @@ int32_t DataServer::enqueue(void *dat, int32_t format)
 }
 
 DataServer::DataServer(CallbackIntf *cb) :
-    RequestHandler(DATA, "rquest handler for data server", cb),
+    RequestHandler(DATA, "data_server_rquest_handler", cb),
     Identifier(MODULE_DATA_SERVER, "DataServer", "1.0.0")
 {
 }

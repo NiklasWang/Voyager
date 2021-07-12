@@ -87,7 +87,7 @@ int32_t FrameServer::enqueue(void *dat, int32_t format)
 }
 
 FrameServer::FrameServer(CallbackIntf *cb) :
-    RequestHandler(FRAME, "rquest handler for frame server", cb),
+    RequestHandler(FRAME, "frame_server_rquest_handler", cb),
     Identifier(MODULE_FRAME_SERVER, "FrameServer", "1.0.0")
 {
 }

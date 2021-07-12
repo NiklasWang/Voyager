@@ -200,7 +200,8 @@ int32_t RequestHandler::construct()
     }
 
     if (SUCCEED(rc)) {
-        rc = mSSSM.construct();
+        const std::string socketName = "socket_" + mName();
+        rc = mSSSM.construct(socketName.c_str());
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct ssm, %d", rc);
         }
