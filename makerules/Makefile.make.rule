@@ -53,7 +53,6 @@ include $(MAKE_RULE)/color.print.make.rule
 
 
 all: prepare
-	$(MAKE) external
 	$(MAKE) $(THREAD_ARG) $(COMPILE_SUB_MODULES) $(LINK_SUB_MODULES)
 	$(MAKE) $(BUILD_SUB_MODULES)
 	$(MAKE) $(THREAD_ARG) $(RELEASE_SUB_MODULES)
@@ -62,17 +61,10 @@ all: prepare
 
 clean:
 	$(MAKE) clean_internal
-	$(MAKE) clean_external
 	@echo -e $(FINISH_COLOR)"Project $(PROJNAME) $(VERSION) all cleaned."$(RESTORE_COLOR)
 
 clean-cache:
 	rm -f `find $(ROOT_DIR) -type f -name "*.make.cache"`
-
-external:
-	$(MAKE) $(THREAD_ARG) all $(GLOBAL_MAKEFLAGS) -C external
-
-clean_external:
-	$(MAKE) $(THREAD_ARG) clean $(GLOBAL_MAKEFLAGS) -C external
 
 clean_internal:
 	$(MAKE) $(THREAD_ARG) $(CLEAN_SUB_MODULES)
