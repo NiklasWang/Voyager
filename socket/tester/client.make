@@ -1,24 +1,39 @@
-CC = g++
-CFLAGS = -std=c++11
-LDFLAGS =
-TARGET = client
-sources = ../client.cpp ../server_client_common.cpp client_tester.cpp
-objects = $(sources:.cpp=.o)
-dependence:=$(sources:.cpp=.d)
+CXX      = $(GLOBAL_CXX)
+CXXFLAGS = $(GLOBAL_CXXFLAGS)
+LDFLAGS  = $(GLOBAL_LDFLAGS)
 
-all: $(objects)
-	$(CC) $^ $(LDFLAGS) -o $(TARGET)
+TARGET      = SocketTesterClient$(strip $(EXE_EXT))
+sources     = client_tester.cpp
+objects     = $(sources:.cpp=.o)
+dependence := $(sources:.cpp=.d)
 
-include $(dependence)
+STATIC_LIBS =
+SHARED_LIBS =
+INCLUDE_MODULE  = $(GLOBAL_STATIC_LIBS) $(GLOBAL_SHARED_LIBS)
 
-%.d: %.cpp
-	@set -e; rm -f $@; \
-	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+include $(MAKE_RULE)/find.library.make.rule
 
-.PHONY: clean
+-include $(dependence)
+
+include $(MAKE_RULE)/dependency.make.rule
+
+
+all: compile link build release
+
+compile: $(objects)
+
+link: $(objects)
+
+build:
+	$(CXX) $(objects) $(LDFLAGS) -o $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(objects) $(dependence)
+	rm -f $(TARGET) $(objects) $(dependence) $(CACHEFILE) *.d*
+
+
+include $(MAKE_RULE)/general.release.make.rule
+
+release:  general_release
+
+.PHONY: clean
 

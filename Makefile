@@ -3,7 +3,7 @@ PROJECT_STATIC_LIBS = libcommon libsp
 PROJECT_SHARED_LIBS = liblog libmemory libutils
 PROJECT_EXCLUDE_DIR = release obj libs
 
-PROJECT_DEPENDENCY  = nasm yasm cpp autopoint cmake aclocal automake libtoolize pkg-config
+PROJECT_DEPENDENCY  = cpp
 
 PROJECT_CFLAGS    = -g
 
