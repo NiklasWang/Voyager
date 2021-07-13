@@ -23,8 +23,7 @@ int32_t FdClient::send(int32_t event, int32_t arg1, int32_t arg2)
 }
 
 FdClient::FdClient(const std::string &name) :
-    RequestHandler(FD, name),
-    Identifier(MODULE_FD_CLIENT, "FdClient", "1.0.0")
+    RequestHandler(FD, name)
 {
 }
 

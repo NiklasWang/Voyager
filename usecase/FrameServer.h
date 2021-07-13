@@ -7,7 +7,6 @@ namespace voyager {
 
 class FrameServer :
     public RequestHandler,
-    virtual public Identifier,
     virtual public noncopyable {
 protected:
 

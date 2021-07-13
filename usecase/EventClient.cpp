@@ -23,8 +23,7 @@ int32_t EventClient::send(int32_t event, int32_t arg1, int32_t arg2)
 }
 
 EventClient::EventClient(const std::string &name) :
-    RequestHandler(EVENT, name),
-    Identifier(MODULE_FD_CLIENT, "EventClient", "1.0.0")
+    RequestHandler(EVENT, name)
 {
 }
 

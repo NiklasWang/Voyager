@@ -23,8 +23,7 @@ int32_t FrameClient::send(int32_t event, int32_t arg1, int32_t arg2)
 }
 
 FrameClient::FrameClient(const std::string &name) :
-    RequestHandler(FRAME, name),
-    Identifier(MODULE_FD_CLIENT, "FrameClient", "1.0.0")
+    RequestHandler(FRAME, name)
 {
 }
 

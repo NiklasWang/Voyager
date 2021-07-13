@@ -23,8 +23,7 @@ int32_t DataClient::send(int32_t event, int32_t arg1, int32_t arg2)
 }
 
 DataClient::DataClient(const std::string &name) :
-    RequestHandler(DATA, name),
-    Identifier(MODULE_FD_CLIENT, "DataClient", "1.0.0")
+    RequestHandler(DATA, name)
 {
 }
 

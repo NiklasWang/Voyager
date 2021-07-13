@@ -7,6 +7,7 @@
 namespace voyager {
 
 class CallbackIntf {
+public:
     virtual int32_t send(void *dat, int64_t len) = 0;
     virtual int32_t send(int32_t fd, int64_t len) = 0;
     virtual int32_t send(void *dat, int64_t len, int32_t format) = 0;

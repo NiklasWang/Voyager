@@ -23,7 +23,7 @@ int32_t DataServer::onClientSent(int32_t fd, const std::string &privateMsg)
     }
 
     if (SUCCEED(rc)) {
-        rc = mCb.send(fd, len);
+        rc = mCb->send(fd, len);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send fd %d len %d cb, %d",
                 fd, len, rc);
@@ -65,8 +65,7 @@ int32_t DataServer::enqueue(void *dat, int32_t format)
 }
 
 DataServer::DataServer(CallbackIntf *cb) :
-    RequestHandler(DATA, cb),
-    Identifier(MODULE_DATA_SERVER, "DataServer", "1.0.0")
+    RequestHandler(DATA, cb)
 {
 }
 

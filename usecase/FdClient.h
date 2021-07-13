@@ -7,7 +7,6 @@ namespace voyager {
 
 class FdClient :
     public RequestHandler,
-    virtual public Identifier,
     virtual public noncopyable {
 protected:
 

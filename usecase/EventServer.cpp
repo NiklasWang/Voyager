@@ -1,6 +1,11 @@
+#include <string>
 #include <sstream>
+#include <vector>
+#include <algorithm>
+#include <regex>
 
 #include "EventServer.h"
+#include "protocol.h"
 
 namespace voyager {
 
@@ -22,7 +27,6 @@ int32_t EventServer::startServerLoop(Semaphore &serverReadySem)
 
     if (SUCCEED(rc)) {
         do {
-            int32_t fd = 0;
             int32_t processRc = NO_ERROR;
             char msgBuf[SOCKET_DATA_MAX_LEN];
             RESETRESULT(rc);
@@ -100,7 +104,7 @@ int32_t EventServer::onClientSent(int32_t fd, const std::string &msg)
     }
 
     if (SUCCEED(rc)) {
-        rc = mCb.send(event, arg1, arg2);
+        rc = mCb->send(event, arg1, arg2);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send event %d %d %d, %d",
                 event, arg1, arg2, rc);
@@ -126,8 +130,7 @@ int32_t EventServer::enqueue(void *dat, int32_t format)
 }
 
 EventServer::EventServer(CallbackIntf *cb) :
-    RequestHandler(EVENT, cb),
-    Identifier(MODULE_EVENT_SERVER, "EventServer", "1.0.0")
+    RequestHandler(EVENT, cb)
 {
 }
 

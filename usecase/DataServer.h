@@ -7,7 +7,6 @@ namespace voyager {
 
 class DataServer :
     public RequestHandler,
-    virtual public Identifier,
     virtual public noncopyable {
 protected:
 

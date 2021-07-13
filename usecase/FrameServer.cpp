@@ -1,4 +1,7 @@
+#include <string>
 #include <sstream>
+#include <vector>
+#include <regex>
 
 #include "FrameServer.h"
 
@@ -45,7 +48,7 @@ int32_t FrameServer::onClientSent(int32_t fd, const std::string &privateMsg)
     }
 
     if (SUCCEED(rc)) {
-        rc = mCb.send(fd, len, format);
+        rc = mCb->send(fd, len, format);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send fd %d len %d cb, %d",
                 fd, len, rc);
@@ -87,8 +90,7 @@ int32_t FrameServer::enqueue(void *dat, int32_t format)
 }
 
 FrameServer::FrameServer(CallbackIntf *cb) :
-    RequestHandler(FRAME, cb),
-    Identifier(MODULE_FRAME_SERVER, "FrameServer", "1.0.0")
+    RequestHandler(FRAME, cb)
 {
 }
 

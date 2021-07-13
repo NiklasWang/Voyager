@@ -7,11 +7,10 @@ namespace voyager {
 
 class EventServer :
     public RequestHandler,
-    virtual public Identifier,
     virtual public noncopyable {
 protected:
 
-    virtual int32_t startServerLoop(int32_t clientfd, const std::string &privateMsg);
+    virtual int32_t startServerLoop(Semaphore &serverReadySem);
     virtual int32_t onClientSent(int32_t fd, const std::string &privateMsg) override;
 
 public:

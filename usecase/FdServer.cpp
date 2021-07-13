@@ -16,7 +16,7 @@ int32_t FdServer::onClientSent(int32_t fd, const std::string &privateMsg)
     }
 
     if (SUCCEED(rc)) {
-        rc = mCb.send(fd, len);
+        rc = mCb->send(fd, len);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send fd %d len %d cb, %d",
                 fd, len, rc);
@@ -51,8 +51,7 @@ int32_t FdServer::enqueue(void *dat, int32_t format)
 }
 
 FdServer::FdServer(CallbackIntf *cb) :
-    RequestHandler(FD, cb),
-    Identifier(MODULE_FD_SERVER, "FdServer", "1.0.0")
+    RequestHandler(FD, cb)
 {
 }
 
