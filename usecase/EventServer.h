@@ -7,8 +7,8 @@ namespace voyager {
 
 class EventServer :
     public RequestHandler,
-    public Identifier,
-    public noncopyable {
+    virtual public Identifier,
+    virtual public noncopyable {
 protected:
 
     virtual int32_t startServerLoop(int32_t clientfd, const std::string &privateMsg);

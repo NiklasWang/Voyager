@@ -1,8 +1,8 @@
 #ifndef _VOYAGER_SERVER_IMPL_H_
 #define _VOYAGER_SERVER_IMPL_H_
 
-#include "common.h"
-#include "ServerImpl.h"
+#include "Common.h"
+#include "ServerIntf.h"
 #include "SyncType.h"
 
 namespace voyager {
@@ -12,8 +12,8 @@ class ThreadPoolEx;
 
 class ServerImpl :
     public ServerIntf,
-    public Identifier,
-    public noncopyable  {
+    virtual public Identifier,
+    virtual public noncopyable  {
 public:
 
     virtual int32_t request(DataCbFunc dataCbFunc, SyncMode mode) override;
@@ -24,10 +24,6 @@ public:
     virtual int32_t enqueue(void *dat, int32_t format) override;
     virtual int32_t request(EventCbFunc eventCbFunc, SyncMode mode) override;
     virtual int32_t cancel(RequestType type) override;
-
-private:
-    int32_t coreRequest(void *request);
-    int32_t coreAbort(void *enqueue);
 
 public:
     ServerImpl();
@@ -44,7 +40,7 @@ private:
 
     struct RequestInfo {
         RequestType type;
-        SyncMode sync;
+        SyncMode    sync;
         union Cb {
             DataCbFunc  dataCb;
             FdCbFunc    fdCb;
@@ -89,7 +85,7 @@ public:
         virtual void *getTask() { return NULL; }
         explicit TaskBase(
             TaskType  _type = TYPE_MAX_INVALID,
-            sync_type _sync = SYNC_TYPE) :
+            SyncTypeE _sync = SYNC_TYPE) :
             type(_type), sync(_sync), module(MODULE_SERVER_IMPL) {}
         virtual ~TaskBase() {}
     };
@@ -100,7 +96,7 @@ public:
         T arg;
         explicit Task(
             TaskType  _type = TYPE_MAX_INVALID,
-            sync_type _sync = SYNC_TYPE) :
+            SyncTypeE _sync = SYNC_TYPE) :
             TaskBase(_type, _sync) {}
         ~Task() = default;
         void *getTask() override { return &arg; };
@@ -108,9 +104,13 @@ public:
     };
 
 private:
+    int32_t coreRequest(void *request);
+    int32_t coreEnqueue(void *info);
+    int32_t coreAbort(void *enqueue);
+
     typedef int32_t (ServerImpl::*PushToThreadFunc)(TaskType type, void *arg);
 
-    template <typename T, sync_type sync = SYNC_TYPE>
+    template <typename T, SyncTypeE sync = SYNC_TYPE>
     int32_t pushToThread(TaskType type, void *value);
 
     int32_t processTask(TaskBase *task);

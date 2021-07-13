@@ -5,8 +5,10 @@
 
 namespace voyager {
 
+class OverallControlLayout;
+
 class OverallControl :
-    public Identifier {
+    virtual public Identifier {
 public:
 
     int32_t addServer(const char *path, const char *name, int32_t maxConnection = 1);

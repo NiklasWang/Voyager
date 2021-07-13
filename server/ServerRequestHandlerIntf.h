@@ -2,6 +2,7 @@
 #define _REQUEST_HANDLER_INTF_H_
 
 #include "ServerIntf.h"
+#include "Semaphore.h"
 
 namespace voyager {
 

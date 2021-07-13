@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "OverallControlSingleton.h"
+#include "AutoLock.h"
 
 namespace voyager {
 

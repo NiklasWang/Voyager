@@ -1,6 +1,8 @@
 #ifndef _VOYAGER_PROTOCOL_H_
 #define _VOYAGER_PROTOCOL_H_
 
+#define SOCKET_DATA_MAX_LEN                256
+
 #define SOCKET_SUFFIX_AFTER_SERVER_NAME    "_socket_server"
 
 #define SOCKET_CLIENT_GREETING_STR         "Greetings."

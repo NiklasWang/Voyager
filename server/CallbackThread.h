@@ -1,7 +1,7 @@
 #ifndef _SERVER_CALLBACK_THREAD_H_
 #define _SERVER_CALLBACK_THREAD_H_
 
-#include "common.h"
+#include "Common.h"
 #include "ServerIntf.h"
 
 namespace voyager {
@@ -17,8 +17,8 @@ class ThreadPoolEx;
 
 class CallbackThread :
     public CallbackIntf,
-    public Identifier,
-    public noncopyable {
+    virtual public Identifier,
+    virtual public noncopyable {
 public:
 
     int32_t send(void *dat, int64_t len) override;

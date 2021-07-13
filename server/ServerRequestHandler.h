@@ -1,19 +1,22 @@
 #ifndef _REQUEST_HANDLER_H_
 #define _REQUEST_HANDLER_H_
 
+#include <map>
+
 #include "Common.h"
-#include "RequestHandlerIntf.h"
+#include "ServerRequestHandlerIntf.h"
 #include "ServerIntf.h"
 #include "CallbackThread.h"
 #include "ThreadPoolEx.h"
 #include "SocketServerStateMachine.h"
+#include "BufferMgr.h"
 
 namespace voyager {
 
 class RequestHandler :
     public RequestHandlerIntf,
-    public Identifier,
-    public noncopyable {
+    virtual public Identifier,
+    virtual public noncopyable {
 public:
 
     virtual int32_t onClientReady(const std::string &serverName, Semaphore &serverReadySem) override;
@@ -26,8 +29,8 @@ public:
     virtual const char *getName() override;
 
 public:
-    virtual int32_t construct() override;
-    virtual int32_t destruct() override;
+    virtual int32_t construct();
+    virtual int32_t destruct();
     RequestHandler(RequestType type, CallbackIntf *cb);
     virtual ~RequestHandler();
 

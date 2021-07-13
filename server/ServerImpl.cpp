@@ -9,7 +9,7 @@ ServerImpl::ServerImpl() :
     Identifier(MODULE_SERVER_IMPL, "ServerImpl", "1.0.0"),
     mConstructed(false),
     mTaskCnt(0),
-    mCore(NULL),
+    mCore(NULL)
 {
     LOGI(mModule, "%s %s initializing...", PROJNAME, VERSION);
 }
@@ -39,7 +39,7 @@ int32_t ServerImpl::construct(const std::string &name, bool enableOverallControl
 
     if (SUCCEED(rc)) {
         rc = mCore->construct(name, enableOverallControl);
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to construct core.");
         }
     }
@@ -79,14 +79,14 @@ int32_t ServerImpl::destruct()
 
     if (SUCCEED(rc)) {
         rc = mCore->destruct();
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to destruct core.");
         } else {
             SECURE_DELETE(mCore);
         }
     }
 
-    if (!SUCCEED(rc)) {
+    if (FAILED(rc)) {
         mConstructed = true;
         LOGE(mModule, "Failed to destruct impl.");
     } else {
@@ -112,7 +112,6 @@ const char *ServerImpl::TaskBase::whoamI()
 
 int32_t ServerImpl::processTask(TaskBase *task)
 {
-    assert(!ISNULL(dat));
     uint32_t rc = NO_ERROR;
     TaskType type = NOTNULL(task) ? task->getType() : TYPE_MAX_INVALID;
     void *arg = NOTNULL(task) ? task->getTask() : NULL;
@@ -141,7 +140,7 @@ int32_t ServerImpl::taskDone(TaskBase *task, int32_t processRC)
     int32_t rc = NO_ERROR;
     SyncType *sync = NOTNULL(task) ? task->getSync() : NULL;
 
-    if (!SUCCEED(processRC)) {
+    if (FAILED(processRC)) {
         LOGE(mModule, "Failed to process task %s with %d, trying to ignore",
             task->whoamI(), processRC);
     }
@@ -155,7 +154,7 @@ int32_t ServerImpl::taskDone(TaskBase *task, int32_t processRC)
     return rc;
 }
 
-template <typename T, sync_type sync>
+template <typename T, SyncTypeE sync>
 int32_t ServerImpl::pushToThread(TaskType type, void *value)
 {
     int32_t rc = NO_ERROR;
@@ -184,7 +183,7 @@ int32_t ServerImpl::pushToThread(TaskType type, void *value)
             task,
             sync
         );
-        if (!SUCCEED(rc)) {
+        if (FAILED(rc)) {
             LOGE(mModule, "Failed to run task %d %s",
                 task->getid(), task->whoamI());
         }
@@ -208,21 +207,10 @@ const ServerImpl::PushToThreadFunc
     [ServerImpl::TYPE_ENQUEUE] = &ServerImpl::pushToThread<EnqueueInfo, SYNC_TYPE>,
 };
 
-#define CONSTRUCT_IMPL() \
-    do { \
-        int32_t rc = NO_ERROR; \
-        if (!mConstructed) { \
-            rc = construct(); \
-            if (!SUCCEED(rc)) { \
-                LOGE(mModule, "Failed to construct  impl %d", rc); \
-                return rc; \
-            } \
-        } \
-    } while(0)
 
 int32_t ServerImpl::request(DataCbFunc dataCbFunc, SyncMode mode)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
 
     RequestInfo request = {
         .type = DATA,
@@ -230,16 +218,16 @@ int32_t ServerImpl::request(DataCbFunc dataCbFunc, SyncMode mode)
         .cb = {
             .dataCb = dataCbFunc,
         },
-    }
+    };
 
     return SUCCEED(rc)
         ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
-        : NO_ERROR;
+        : rc;
 }
 
 int32_t ServerImpl::request(FdCbFunc fdCbFunc, SyncMode mode)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
 
     RequestInfo request = {
         .type = FD,
@@ -247,32 +235,33 @@ int32_t ServerImpl::request(FdCbFunc fdCbFunc, SyncMode mode)
         .cb = {
             .fdCb = fdCbFunc,
         },
-    }
+    };
 
     return SUCCEED(rc)
         ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
-        : NO_ERROR;
+        : rc;
 }
 
 int32_t ServerImpl::request(FrameCbFunc frameCbFunc, SyncMode mode)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
+
     RequestInfo request = {
         .type = FRAME,
         .sync = mode,
         .cb = {
             .frameCb = frameCbFunc,
         },
-    }
+    };
 
     return SUCCEED(rc)
         ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
-        : NO_ERROR;
+        : rc;
 }
 
 int32_t ServerImpl::request(EventCbFunc eventCbFunc, SyncMode mode)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
 
     RequestInfo request = {
         .type = EVENT,
@@ -280,16 +269,16 @@ int32_t ServerImpl::request(EventCbFunc eventCbFunc, SyncMode mode)
         .cb = {
             .eventCb = eventCbFunc,
         },
-    }
+    };
 
     return SUCCEED(rc)
         ? (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request)
-        : NO_ERROR;
+        : rc;
 }
 
 int32_t ServerImpl::cancel(RequestType type)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
     RequestInfo request;
 
     if (SUCCEED(rc)) {
@@ -317,7 +306,7 @@ int32_t ServerImpl::cancel(RequestType type)
     }
 
     if (SUCCEED(rc)) {
-        rc = this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request);
+        rc = (this->*(gAddThreadTaskFunc[TYPE_REQUEST]))(TYPE_REQUEST, &request);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to cancel %s on core, %d",
                 getRequestName(type), rc);
@@ -329,7 +318,7 @@ int32_t ServerImpl::cancel(RequestType type)
 
 int32_t ServerImpl::enqueue(void *_dat)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
 
     EnqueueInfo info = {
         .type = DATA,
@@ -338,14 +327,16 @@ int32_t ServerImpl::enqueue(void *_dat)
                 .ptr = _dat,
             },
         },
-    }
+    };
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info)
+        : rc;
 }
 
 int32_t ServerImpl::enqueue(int32_t _fd)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
 
     EnqueueInfo info = {
         .type = FD,
@@ -354,14 +345,17 @@ int32_t ServerImpl::enqueue(int32_t _fd)
                 .fd = _fd,
             },
         },
-    }
+    };
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info)
+        : rc;
 }
 
 int32_t ServerImpl::enqueue(void *_dat, int32_t _format)
 {
-    int32_t rc = CONSTRUCT_IMPL();
+    int32_t rc = NO_ERROR;
+
     EnqueueInfo info = {
         .type = FRAME,
         .object = {
@@ -370,9 +364,11 @@ int32_t ServerImpl::enqueue(void *_dat, int32_t _format)
                 .format = _format,
             },
         },
-    }
+    };
 
-    return SUCCEED(rc) ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info) : NO_ERROR;
+    return SUCCEED(rc)
+        ? (this->*(gAddThreadTaskFunc[TYPE_ENQUEUE]))(TYPE_ENQUEUE, &info)
+        : rc;
 }
 
 
@@ -382,21 +378,21 @@ int32_t ServerImpl::coreRequest(void *_request)
     RequestInfo *info = static_cast<RequestInfo *>(_request);
 
     if (SUCCEED(rc)) {
-        switch (info.type) {
+        switch (info->type) {
             case DATA : {
-                rc = mCore->request(info.cb.dataCb, info.sync);
+                rc = mCore->request(info->cb.dataCb, info->sync);
             }; break;
             case FD : {
-                rc = mCore->request(info.cb.fdCb, info.sync);
+                rc = mCore->request(info->cb.fdCb, info->sync);
             }; break;
             case FRAME : {
-                rc = mCore->request(info.cb.frameCb, info.sync);
+                rc = mCore->request(info->cb.frameCb, info->sync);
             }; break;
             case EVENT : {
-                rc = mCore->request(info.cb.eventCb, info.sync);
+                rc = mCore->request(info->cb.eventCb, info->sync);
             }; break;
             case REQUEST_TYPE_MAX_INVALID : {
-                LOGE(mModule, "Invalid request %d", info.type);
+                LOGE(mModule, "Invalid request %d", info->type);
                 rc = PARAM_INVALID;
             }; break;
         }
@@ -414,21 +410,21 @@ int32_t ServerImpl::coreEnqueue(void *_info)
     EnqueueInfo *info = static_cast<EnqueueInfo *>(_info);
 
     if (SUCCEED(rc)) {
-        switch (info.type) {
+        switch (info->type) {
             case DATA : {
-                rc = mCore->enqueue(info.object.data.ptr);
+                rc = mCore->enqueue(info->object.data.ptr);
             }; break;
             case FD : {
-                rc = mCore->request(info.object.fd.fd);
+                rc = mCore->enqueue(info->object.fd.fd);
             }; break;
             case FRAME : {
-                rc = mCore->request(info.object.frame.ptr, info.object.frame.format);
+                rc = mCore->enqueue(info->object.frame.ptr, info->object.frame.format);
             }; break;
             case EVENT : {
                 // Not required
             }; break;
             case REQUEST_TYPE_MAX_INVALID : {
-                LOGE(mModule, "Invalid request %d", info.type);
+                LOGE(mModule, "Invalid request %d", info->type);
                 rc = PARAM_INVALID;
             }; break;
         }

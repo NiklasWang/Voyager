@@ -3,12 +3,13 @@
 
 #include "Common.h"
 #include "OverallControl.h"
+#include "BufferMgr.h"
 
 namespace voyager {
 
 class OverallControlAllocator :
     public OverallControl,
-    public Identifier {
+    virtual public Identifier {
 public:
 
     int32_t alloc();
@@ -16,7 +17,7 @@ public:
     void    flush();
     int32_t free();
     int32_t getFd();
-    int32_t getPtr();
+    OverallControlLayout *getPtr();
 
 public:
     int32_t addServer(const char *path, const char *name, int32_t maxConnection = 1);
@@ -27,7 +28,7 @@ public:
     int32_t removeServer(const char *ip, int32_t port);
     int32_t addClient(const char *ip, int32_t port);
     int32_t removeClient(const char *ip, int32_t port);
-    void    setLayout(const OverallControlLayout *layout);
+    void    setLayout(void *layout);
     int32_t initLayout();
     void    dump(const char *prefix = "");
 

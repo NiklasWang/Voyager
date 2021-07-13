@@ -1,5 +1,9 @@
+#include <sstream>
+#include <regex>
+
 #include "protocol.h"
 #include "ServerRequestHandler.h"
+#include "IntfImpl.h"
 
 namespace voyager {
 
@@ -28,7 +32,7 @@ int32_t RequestHandler::onClientReady(const std::string &serverName, Semaphore &
 
     if (SUCCEED(rc)) {
         rc = mThreads->run(
-            [this, &]() -> int32_t {
+            [this, &serverReadySem]() -> int32_t {
                 return startServerLoop(serverReadySem);
             }
         );
@@ -59,7 +63,6 @@ int32_t RequestHandler::startServerLoop(Semaphore &serverReadySem)
     if (SUCCEED(rc)) {
         do {
             int32_t fd = 0;
-            int32_t clientfd = -1;
             int32_t processRc = NO_ERROR;
             char    socketMsg[SOCKET_DATA_MAX_LEN];
             std::string privateMsg;
@@ -151,8 +154,8 @@ int32_t RequestHandler::revealPrivateArgFromMsg(
 
     if (SUCCEED(rc)) {
         for (auto &&word : words) {
-            if (word[0] == "<" &&
-                word[word.length() - 1] == ">") {
+            if (word[0] == '<' &&
+                word[word.length() - 1] == '>') {
                 privateArg = word;
             }
         }
@@ -189,8 +192,8 @@ int32_t RequestHandler::removeFdRecord(int32_t fd)
     int32_t rc = NO_ERROR;
 
     if (SUCCEED(rc)) {
-        if (checkFdExists(dat)) {
-            removeFdRecord(dat);
+        if (checkFdExists(fd)) {
+            removeFdRecord(fd);
         } else {
             LOGE(mModule, "Fd %d not exist.", fd);
             rc = PARAM_INVALID;
@@ -225,7 +228,7 @@ void RequestHandler::addFdRecord(int32_t fd)
 
 void RequestHandler::addFdRecord(int32_t fd, void *ptr)
 {
-    mFds.push_back(std::make_pair(fd, ptr));
+    mFds[fd] = ptr;
     return;
 }
 
@@ -345,8 +348,8 @@ RequestHandler::RequestHandler(RequestType type, CallbackIntf *cb) :
     Identifier(MODULE_SERVER_HANDLER, "RequestHandler", "1.0.0"),
     mConstructed(false),
     mType(type),
-    mThreads(NULL),
-    mCb(cb)
+    mCb(cb),
+    mThreads(nullptr)
 {
     ASSERT_LOG(mModule, NOTNULL(mCb), "Ops shouldn't be NULL");
     ASSERT_LOG(mModule, checkValid(mType), "Invalid request type %d", type);

@@ -1,4 +1,5 @@
 #include "OverallControl.h"
+#include "OverallControlLayout.h"
 
 namespace voyager {
 
@@ -15,14 +16,14 @@ OverallControlLayout::Sockets::Server &operator++(OverallControlLayout::Sockets:
 {
     ++rhs.currentConnections;
 
-    return *this;
+    return rhs;
 }
 
 OverallControlLayout::Sockets::Server operator++(OverallControlLayout::Sockets::Server &rhs, int)
 {
     OverallControlLayout::Sockets::Server tmp = rhs;
 
-    ++(*this);
+    ++rhs;
 
     return tmp;
 }
@@ -31,14 +32,14 @@ OverallControlLayout::Sockets::Server &operator--(OverallControlLayout::Sockets:
 {
     --rhs.currentConnections;
 
-    return *this;
+    return rhs;
 }
 
 OverallControlLayout::Sockets::Server operator--(OverallControlLayout::Sockets::Server &rhs, int)
 {
     OverallControlLayout::Sockets::Server tmp = rhs;
 
-    --(*this);
+    --rhs;
 
     return tmp;
 }
@@ -61,7 +62,7 @@ int32_t OverallControl::addServer(const char *path, const char *name, int32_t ma
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
             if (mLayout->sockets.server[i].type ==
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_MAX_INVALID) {
                 mLayout->sockets.server[i].type =
@@ -92,7 +93,7 @@ int32_t OverallControl::removeServer(const char *path, const char *name)
 
     if (SUCCEED(rc)) {
         if (existingIndex != -1) {
-            mLayout->sockets.server[existingIndex].type ==
+            mLayout->sockets.server[existingIndex].type =
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_MAX_INVALID;
         } else {
             LOGE(mModule, "Server not existed in overall control, %s %s", path, name);
@@ -134,7 +135,7 @@ int32_t OverallControl::addClient(const char *path, const char *name)
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
             if (mLayout->sockets.client[i].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID) {
                 mLayout->sockets.client[i].type =
@@ -177,7 +178,7 @@ int32_t OverallControl::removeClient(const char *path, const char *name)
 
     if (SUCCEED(rc)) {
         if (existingIndex != -1) {
-            mLayout->sockets.client[existingIndex].type ==
+            mLayout->sockets.client[existingIndex].type =
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID;
             --mLayout->sockets.server[serverIndex];
         } else {
@@ -207,7 +208,7 @@ int32_t OverallControl::addServer(const char *ip, int32_t port, int32_t maxConne
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
             if (mLayout->sockets.server[i].type ==
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_MAX_INVALID) {
                 mLayout->sockets.server[i].type =
@@ -238,7 +239,7 @@ int32_t OverallControl::removeServer(const char *ip, int32_t port)
 
     if (SUCCEED(rc)) {
         if (existingIndex != -1) {
-            mLayout->sockets.server[existingIndex].type ==
+            mLayout->sockets.server[existingIndex].type =
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_MAX_INVALID;
         } else {
             LOGE(mModule, "Server not existed in overall control, %s %d", ip, port);
@@ -280,7 +281,7 @@ int32_t OverallControl::addClient(const char *ip, int32_t port)
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
             if (mLayout->sockets.client[i].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID) {
                 mLayout->sockets.client[i].type =
@@ -323,7 +324,7 @@ int32_t OverallControl::removeClient(const char *ip, int32_t port)
 
     if (SUCCEED(rc)) {
         if (existingIndex != -1) {
-            mLayout->sockets.client[existingIndex].type ==
+            mLayout->sockets.client[existingIndex].type =
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID;
             --mLayout->sockets.server[serverIndex];
         } else {
@@ -341,11 +342,11 @@ int32_t OverallControl::searchServer(const char *path, const char *name, int32_t
     index = -1;
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
             if (mLayout->sockets.server[i].type ==
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_LOCAL           &&
                 COMPARE_SAME_STRING(path, mLayout->sockets.server[i].address.local.path) &&
-                COMPARE_SAME_STRING(name, mLayout->sockets.server[i].address.local.name) {
+                COMPARE_SAME_STRING(name, mLayout->sockets.server[i].address.local.name)) {
                 index = i;
                 break;
             }
@@ -361,11 +362,11 @@ int32_t OverallControl::searchClient(const char *path, const char *name, int32_t
     index = -1;
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
             if (mLayout->sockets.client[i].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_LOCAL           &&
-                COMPARE_SAME_STRING(path, mLayout->sockets.client[i].address.local.path) &&
-                COMPARE_SAME_STRING(name, mLayout->sockets.client[i].address.local.name) {
+                COMPARE_SAME_STRING(path, mLayout->sockets.client[i].connect.local.path) &&
+                COMPARE_SAME_STRING(name, mLayout->sockets.client[i].connect.local.name)) {
                 index = i;
                 break;
             }
@@ -381,7 +382,7 @@ int32_t OverallControl::searchServer(const char *ip, int32_t port, int32_t &inde
     index = -1;
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
             if (mLayout->sockets.server[i].type ==
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_IP       &&
                 COMPARE_SAME_STRING(ip, mLayout->sockets.server[i].address.ip.ip) &&
@@ -401,7 +402,7 @@ int32_t OverallControl::searchClient(const char *ip, int32_t port, int32_t &inde
     index = -1;
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
             if (mLayout->sockets.client[i].type ==
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_IP       &&
                 COMPARE_SAME_STRING(ip, mLayout->sockets.client[i].connect.ip.ip) &&
@@ -429,14 +430,14 @@ int32_t OverallControl::initLayout()
     int32_t rc = CHECK_SET_LAYOUT();
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
             mLayout->sockets.server[i].type =
                 OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_MAX_INVALID;
         }
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
             mLayout->sockets.client[i].type =
                 OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_MAX_INVALID;
         }
@@ -450,7 +451,7 @@ void OverallControl::dump(const char *prefix)
     LOGI(mModule, "Dump overall control data, %s", prefix);
 
     LOGI(mModule, "--- Servers: ---");
-    for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
+    for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.server); i++) {
         if (mLayout->sockets.server[i].type ==
             OverallControlLayout::Sockets::Server::Type::SERVER_TYPE_IP) {
             LOGI(mModule, " - IP: %s Port %d connections %d max connection %d",
@@ -469,7 +470,7 @@ void OverallControl::dump(const char *prefix)
     }
 
     LOGI(mModule, "--- Clients: ---");
-    for (int32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
+    for (uint32_t i = 0; i < ARRAYSIZE(mLayout->sockets.client); i++) {
         if (mLayout->sockets.client[i].type ==
             OverallControlLayout::Sockets::Client::Type::CLIENT_TYPE_IP) {
             LOGI(mModule, " - Connected to IP: %s Port %d",

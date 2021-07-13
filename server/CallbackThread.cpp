@@ -47,8 +47,8 @@ int32_t CallbackThread::send(int32_t fd, int64_t len)
                     _rc = NOT_INITED;
                 }
                 return _rc;
-            }
-        rc = (mDataCbSyncMode == SYNC)
+            };
+        rc = (mFdCbSyncMode == SYNC)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {
@@ -76,7 +76,7 @@ int32_t CallbackThread::send(void *dat, int64_t len, int32_t format)
                 }
                 return _rc;
             };
-        rc = (mDataCbSyncMode == SYNC)
+        rc = (mFrameCbSyncMode == SYNC)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {
@@ -95,16 +95,16 @@ int32_t CallbackThread::send(int32_t event, int32_t arg1, int32_t arg2)
         auto func =
             [=]() -> int32_t {
                 int32_t _rc = NO_ERROR;
-                if (NOTNULL(mEvtCbFunc)) {
+                if (NOTNULL(mEventCbFunc)) {
                     mEvtCnt++;
-                    _rc = mEvtCbFunc(event, arg1, arg2);
+                    _rc = mEventCbFunc(event, arg1, arg2);
                 } else {
                     LOGE(mModule, "Event callback func not set, can't send.");
                     _rc = NOT_INITED;
                 }
                 return _rc;
             };
-        rc = (mDataCbSyncMode == SYNC)
+        rc = (mEventCbSyncMode == SYNC)
             ? mThreads->runWait(func)
             : mThreads->run(func);
         if (FAILED(rc)) {

@@ -10,6 +10,8 @@ dependence := $(sources:.cpp=.d)
 SHARED_LIBS     =
 STATIC_LIBS     =
 INCLUDE_MODULE  = $(GLOBAL_SHARED_LIBS) $(GLOBAL_STATIC_LIBS)
+INCLUDE_MODULE += libthreads libsocket libbufmanager
+INCLUDE_MODULE += libclient libusecase
 
 include $(MAKE_RULE)/find.library.make.rule 
 

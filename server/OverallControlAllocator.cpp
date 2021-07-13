@@ -1,4 +1,5 @@
 #include "OverallControlAllocator.h"
+#include "OverallControlLayout.h"
 
 namespace voyager {
 
@@ -14,10 +15,13 @@ int32_t OverallControlAllocator::alloc()
     }
 
     if (SUCCEED(rc)) {
-        rc = mBufMgr.alloc(&mLayout, sizeof(OverallControlLayout), &mBufFd);
+        void *buf = nullptr;
+        rc = mBufMgr.alloc(&buf, sizeof(OverallControlLayout), &mBufFd);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to alloc %d bytes for overall control, %d",
                 sizeof(OverallControlLayout), rc);
+        } else {
+            mLayout = static_cast<OverallControlLayout *>(buf);
         }
     }
 
@@ -44,10 +48,13 @@ int32_t OverallControlAllocator::import(int32_t fd, int64_t len)
     }
 
     if (SUCCEED(rc)) {
-        rc = mBufMgr.import(&mLayout, fd, len);
+        void *buf = nullptr;
+        rc = mBufMgr.import(&buf, fd, len);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to import %d bytes for overall control, %d",
                 sizeof(OverallControlLayout), rc);
+        } else {
+            mLayout = static_cast<OverallControlLayout *>(buf);
         }
     }
 
@@ -85,23 +92,9 @@ int32_t OverallControlAllocator::getFd()
     return mBufFd <= 0 ? -1 : mBufFd;
 }
 
-int32_t OverallControlAllocator::getPtr()
+OverallControlLayout *OverallControlAllocator::getPtr()
 {
     return mLayout;
-}
-
-OverallControlAllocator::OverallControlAllocator() :
-    Identifier(MODULE_OVERALL_CONTROL, "OverallControlAllocator", "1.0.0"),
-    mBufMgr(nullptr),
-    mBufFd(0)
-{
-}
-
-OverallControlAllocator::~OverallControlAllocator()
-{
-    if (mBufFd > 0) {
-        free();
-    }
 }
 
 
@@ -110,7 +103,7 @@ OverallControlAllocator::~OverallControlAllocator()
         int32_t __rc = NO_ERROR; \
         if (mBufFd <= 0) { \
             __rc = alloc(); \
-            if (FAILED(__rc) { \
+            if (FAILED(__rc)) { \
                 LOGE(mModule, "Overall control alloc failed, %d", __rc); \
             } \
         } \
@@ -169,7 +162,12 @@ int32_t OverallControlAllocator::removeClient(const char *ip, int32_t port)
 void OverallControlAllocator::setLayout(void *layout)
 {
     int32_t rc = CHECK_ALLOCATION_FIRST();
-    return SUCCEED(rc) ? OverallControl::setLayout(layout) : rc;
+
+    if (SUCCEED(rc)) {
+        OverallControl::setLayout(layout);
+    }
+
+    return;
 }
 
 int32_t OverallControlAllocator::initLayout()
@@ -181,8 +179,26 @@ int32_t OverallControlAllocator::initLayout()
 void OverallControlAllocator::dump(const char *prefix)
 {
     int32_t rc = CHECK_ALLOCATION_FIRST();
-    flush();
-    return SUCCEED(rc) ? OverallControl::dump(prefix) : rc;
+
+    if (SUCCEED(rc)) {
+        flush();
+        OverallControl::dump(prefix);
+    }
+
+    return;
+}
+
+OverallControlAllocator::OverallControlAllocator() :
+    Identifier(MODULE_OVERALL_CONTROL, "OverallControlAllocator", "1.0.0"),
+    mBufFd(-1)
+{
+}
+
+OverallControlAllocator::~OverallControlAllocator()
+{
+    if (mBufFd > 0) {
+        free();
+    }
 }
 
 };

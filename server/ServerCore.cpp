@@ -1,12 +1,15 @@
+#include <sstream>
+#include <regex>
+
 #include "ServerCore.h"
 #include "protocol.h"
+#include "IntfImpl.h"
 
 namespace voyager {
 
 int32_t ServerCore::construct(const std::string &name, bool enableOverallControl)
 {
     int32_t rc = NO_ERROR;
-    int32_t size = 0;
     mName = name;
     mEnableOverallControl = enableOverallControl;
 
@@ -27,7 +30,7 @@ int32_t ServerCore::construct(const std::string &name, bool enableOverallControl
     if (SUCCEED(rc)) {
         if (NOTNULL(mOverallControl)) {
             rc = mOverallControl->addServer(
-                SERVER_SOCKET_PATH, mName, MAX_CLIENT_ALLOWED);
+                SERVER_SOCKET_PATH, mName.c_str(), MAX_CLIENT_ALLOWED);
             if (FAILED(rc)) {
                 LOGE(mModule, "Failed to add main server into overall control, %d", rc);
             }
@@ -179,7 +182,7 @@ int32_t ServerCore::startServerLoop()
 
             if (SUCCEED(rc)) {
                 if (requested(type)) {
-                    rc = mRequests[type]->onClientReady(serverReadySem);
+                    rc = mRequests[type]->onClientReady(mName, serverReadySem);
                     if (FAILED(rc)) {
                         LOGE(mModule, "Failed to notify client ready to %s",
                             rc, mRequests[type]->getName());
@@ -327,7 +330,7 @@ int32_t ServerCore::replyClientRequestNotRequested()
     return rc;
 }
 
-int32_t ServerCore::revealRequestType(RequestType &type)
+int32_t ServerCore::revealRequestType(const char *msg, RequestType &type)
 {
     int32_t rc = NO_ERROR;
     std::vector<std::string> words;
@@ -349,8 +352,8 @@ int32_t ServerCore::revealRequestType(RequestType &type)
 
     if (SUCCEED(rc)) {
         for (auto &&word : words) {
-            if (word[0] == "<" &&
-                word[word.length() - 1] == ">") {
+            if (word[0] == '<' &&
+                word[word.length() - 1] == '>') {
                 typeStr = word;
             }
         }
@@ -381,7 +384,7 @@ int32_t ServerCore::enableAllRequestedRequests()
     }
 
     if (SUCCEED(rc)) {
-        for (int32_t i = 0; i < ARRAYSIZE(mCachedRequest); i++) {
+        for (uint32_t i = 0; i < ARRAYSIZE(mCachedRequest); i++) {
             if (mCachedRequest[i]) {
                 rc = request(static_cast<RequestType>(i));
                 if (FAILED(rc)) {
@@ -442,13 +445,6 @@ int32_t ServerCore::destruct()
                 if (FAILED(rc)) {
                     final |= rc;
                     LOGE(mModule, "Failed to abort request handler %s",
-                        mRequests[i]->getName());
-                    RESETRESULT(rc);
-                }
-                rc = mRequests[i]->destruct();
-                if (FAILED(rc)) {
-                    final |= rc;
-                    LOGE(mModule, "Failed to destruct request handler %s",
                         mRequests[i]->getName());
                     RESETRESULT(rc);
                 }
@@ -525,7 +521,7 @@ int32_t ServerCore::request(RequestType type)
         }
     }
 
-    return rc
+    return rc;
 }
 
 int32_t ServerCore::createRequestHandler(RequestType type)
@@ -534,7 +530,7 @@ int32_t ServerCore::createRequestHandler(RequestType type)
     RequestHandler *requestHandler = nullptr;
 
     if (SUCCEED(rc)) {
-        if (requested(type))) {
+        if (requested(type)) {
             LOGI(mModule, "%s alreay requested",
                 mRequests[type]->getName());
             rc = ALREADY_EXISTS;
@@ -595,14 +591,6 @@ int32_t ServerCore::abort(RequestType type)
         rc = requestHandler->abort();
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to exit request handler %s, %d",
-                requestHandler->getName(), rc);
-        }
-    }
-
-    if (SUCCEED(rc)) {
-        rc = requestHandler->destruct();
-        if (FAILED(rc)) {
-            LOGE(mModule, "Failed to destruct request handler %s, %d",
                 requestHandler->getName(), rc);
         }
     }

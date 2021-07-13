@@ -7,8 +7,8 @@ namespace voyager {
 
 class DataServer :
     public RequestHandler,
-    public Identifier,
-    public noncopyable {
+    virtual public Identifier,
+    virtual public noncopyable {
 protected:
 
     virtual int32_t onClientSent(int32_t fd, const std::string &privateMsg) override;
