@@ -1,7 +1,7 @@
 #ifndef _DATA_CLIENT_H_
 #define _DATA_CLIENT_H_
 
-#include "RequestHandler.h"
+#include "ClientRequestHandler.h"
 
 namespace voyager {
 

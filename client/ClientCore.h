@@ -6,7 +6,7 @@
 #include "BufferMgr.h"
 #include "OverallControlSingleton.h"
 #include "SocketClientStateMachine.h"
-#include "RequestHandler.h"
+#include "ClientRequestHandler.h"
 
 namespace voyager {
 

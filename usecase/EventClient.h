@@ -1,7 +1,7 @@
 #ifndef _EVENT_CLIENT_H_
 #define _EVENT_CLIENT_H_
 
-#include "RequestHandler.h"
+#include "ClientRequestHandler.h"
 
 namespace voyager {
 

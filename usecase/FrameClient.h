@@ -1,7 +1,7 @@
 #ifndef _FRAME_CLIENT_H_
 #define _FRAME_CLIENT_H_
 
-#include "RequestHandler.h"
+#include "ClientRequestHandler.h"
 
 namespace voyager {
 

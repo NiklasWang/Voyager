@@ -1,5 +1,5 @@
 #include "protocol.h"
-#include "RequestHandler.h"
+#include "ServerRequestHandler.h"
 
 namespace voyager {
 

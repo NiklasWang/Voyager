@@ -6,7 +6,7 @@
 #include "OverallControlSingleton.h"
 #include "SocketServerStateMachine.h"
 #include "CallbackThread.h"
-#include "RequestHandler.h"
+#include "ServerRequestHandler.h"
 #include "ThreadPoolEx.h"
 
 namespace voyager {

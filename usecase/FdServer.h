@@ -1,7 +1,7 @@
 #ifndef _FD_SERVER_H_
 #define _FD_SERVER_H_
 
-#include "RequestHandler.h"
+#include "ServerRequestHandler.h"
 
 namespace voyager {
 
