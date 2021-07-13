@@ -2,9 +2,9 @@
 #define _ION_BUFFER_MANAGER_IMPL_H__
 
 #include <list>
-#include <pthread>
+#include <pthread.h>
 
-#include "common.h"
+#include "Common.h"
 #include "BufferMgrIntf.h"
 #include "IonOperator.h"
 
@@ -41,10 +41,8 @@ private:
 private:
     Buffer *findBuf(void *buf);
     Buffer *findBuf(int32_t fd);
-    int32_t allocate(Buffer *buf, int64_t len);
+    int32_t alloc(Buffer *buf, int64_t len);
     int32_t import(Buffer *buf, int32_t fd, int64_t len);
-    int32_t cacheIoctl(void *buf, uint32_t cmd);
-    int32_t cacheIoctl(Buffer *buf, uint32_t cmd);
     int32_t release(Buffer *buf);
     void    clear();
 

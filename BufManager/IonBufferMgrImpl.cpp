@@ -1,3 +1,8 @@
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+
 #include "IonBufferMgrImpl.h"
 #include "IonOperator.h"
 
@@ -81,13 +86,13 @@ int32_t IonBufferMgrImpl::deinit()
     return rc;
 }
 
-int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len)
+int32_t IonBufferMgrImpl::alloc(void **buf, int64_t len)
 {
     int32_t fd = -1;
-    return allocate(buf, len, &fd);
+    return alloc(buf, len, &fd);
 }
 
-int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len, int32_t *fd)
+int32_t IonBufferMgrImpl::alloc(void **buf, int64_t len, int32_t *fd)
 {
     int32_t rc = NO_ERROR;
     Buffer buffer;
@@ -95,7 +100,7 @@ int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len, int32_t *fd)
 
     if (SUCCEED(rc)) {
         aligned = align_len_to_size(len, mPageSize);
-        rc = allocate(&buffer, aligned);
+        rc = alloc(&buffer, aligned);
         if (SUCCEED(rc)) {
             *buf = buffer.ptr;
             *fd  = buffer.fd;
@@ -106,7 +111,7 @@ int32_t IonBufferMgrImpl::allocate(void **buf, int64_t len, int32_t *fd)
     return rc;
 }
 
-int32_t IonBufferMgrImpl::allocate(Buffer *buf, int64_t len)
+int32_t IonBufferMgrImpl::alloc(Buffer *buf, int64_t len)
 {
     int32_t rc = NO_ERROR;
     int32_t fd = -1;
@@ -114,8 +119,8 @@ int32_t IonBufferMgrImpl::allocate(Buffer *buf, int64_t len)
     ion_user_handle_t handle;
 
     if (SUCCEED(rc)) {
-        rc = kIonHelper.ion_alloc_func(kIonFd, len, ION_ALLOC_ALIGN_SIZE,
-            0x1 << ION_IOMMU_HEAP_ID, ION_FLAG_CACHED, &handle);
+        rc = kIonHelper.ion_alloc_func(kIonFd, len, 0,
+            ION_HEAP_SYSTEM_MASK, ION_FLAG_CACHED, &handle);
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to alloc %d bytes from ion", len);
         }
@@ -204,60 +209,28 @@ int32_t IonBufferMgrImpl::import(Buffer *buf, int32_t fd, int64_t len)
 
 int32_t IonBufferMgrImpl::flush(void *buf)
 {
-    Buffer *buffer = findBuf(buf);
-    msync(buffer->ptr, buffer->len, MS_SYNC);
-    return cacheIoctl(buffer->ptr, ION_IOC_CLEAN_INV_CACHES);
-}
-
-int32_t IonBufferMgrImpl::flush(int32_t fd)
-{
-    Buffer *buffer = findBuf(fd);
-    msync(buffer->ptr, buffer->len, MS_SYNC);
-    return cacheIoctl(buffer->ptr, ION_IOC_CLEAN_INV_CACHES);
-}
-
-int32_t IonBufferMgrImpl::cacheIoctl(void *buf, uint32_t cmd)
-{
     int32_t rc = NO_ERROR;
     Buffer *buffer = findBuf(buf);
 
-    if (ISNULL(buffer)) {
-        LOGE(mModule, "Failed to find memory.");
-        rc = NO_MEMORY;
-    }
-
     if (SUCCEED(rc)) {
-        rc = cacheIoctl(buffer, cmd);
+        rc = kIonHelper.ion_sync_fd_func(buffer->fd, buffer->handler);
         if (FAILED(rc)) {
-            LOGE(mModule, "Failed to ioctl ion, %d", rc);
+            LOGE(mModule, "Failed to sync ion fd, %d", rc);
         }
     }
 
     return rc;
 }
 
-int32_t IonBufferMgrImpl::cacheIoctl(Buffer *buf, uint32_t cmd)
+int32_t IonBufferMgrImpl::flush(int32_t fd)
 {
     int32_t rc = NO_ERROR;
-    struct ion_flush_data flushData;
-    struct ion_custom_data customData;
-    memset(&flushData,  0x0, sizeof(flushData));
-    memset(&customData, 0x0, sizeof(customData));
+    Buffer *buffer = findBuf(fd);
 
     if (SUCCEED(rc)) {
-        flushData.vaddr = buf->ptr;
-        flushData.fd = buf->fd;
-        flushData.handle = buf->handler;
-        flushData.length = buf->len;
-
-        customData.cmd = cmd;
-        customData.arg = (unsigned long)&flushData;
-    }
-
-    if (SUCCEED(rc)) {
-        rc = ioctl(kIonFd, ION_IOC_CUSTOM, &customData);
+        rc = kIonHelper.ion_sync_fd_func(buffer->fd, buffer->handler);
         if (FAILED(rc)) {
-           LOGE(mModule, "Failed cache ioctl, %s", strerror(errno));
+            LOGE(mModule, "Failed to sync ion fd, %d", rc);
         }
     }
 

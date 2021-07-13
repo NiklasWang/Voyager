@@ -1,3 +1,5 @@
+#include <dlfcn.h>
+
 #include "Common.h"
 #include "IonOperator.h"
 
@@ -32,8 +34,8 @@ int32_t IonOperator::init()
         ion_sync_fd_func  = (ion_sync_fd)dlsym(mDlHandler,  "ion_sync_fd");
         ion_free_func     = (ion_free)dlsym(mDlHandler,     "ion_free");
         ion_map_func      = (ion_map)dlsym(mDlHandler,      "ion_map");
-        ion_share_func    = (ion_open)dlsym(mDlHandler,     "ion_share");
-        ion_import_func   = (ion_open)dlsym(mDlHandler,     "ion_import");
+        ion_share_func    = (ion_share)dlsym(mDlHandler,    "ion_share");
+        ion_import_func   = (ion_import)dlsym(mDlHandler,   "ion_import");
         if (ISNULL(ion_open_func)     ||
             ISNULL(ion_close_func)    ||
             ISNULL(ion_alloc_func)    ||
@@ -80,7 +82,7 @@ int32_t IonOperator::deinit()
     return rc;
 }
 
-IonOperator::IonBufferMgr() :
+IonOperator::IonOperator() :
     Identifier(MODULE_ION_HELPER, "IonBufferMgr", "1.0.0"),
     ion_open_func(nullptr),
     ion_close_func(nullptr),
@@ -95,7 +97,7 @@ IonOperator::IonBufferMgr() :
 {
 }
 
-IonOperator::~IonBufferMgr()
+IonOperator::~IonOperator()
 {
     deinit();
 }

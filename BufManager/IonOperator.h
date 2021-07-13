@@ -1,6 +1,8 @@
 #ifndef _ION_OPERATOR_H__
 #define _ION_OPERATOR_H__
 
+#include "ion/ion.h"
+
 namespace voyager {
 
 typedef int (*ion_open)();
@@ -37,8 +39,8 @@ public:
     int32_t deinit();
 
 public:
-    IonBufferMgr();
-    virtual ~IonBufferMgr();
+    IonOperator();
+    virtual ~IonOperator();
 
 private:
     void *mDlHandler;

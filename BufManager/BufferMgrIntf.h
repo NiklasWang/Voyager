@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-class BufferMgrIntf
-{
+class BufferMgrIntf {
 public:
+
     virtual int32_t alloc(void **buf, int64_t len) = 0;
     virtual int32_t alloc(void **buf, int64_t len, int32_t *fd) = 0;
     virtual int32_t import(void **buf, int32_t fd, int64_t len) = 0;

@@ -1,4 +1,10 @@
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <dirent.h>
+
 #include "FSBufferMgr.h"
+#include "TimeUtils.h"
 
 #define FS_BUFFER_PATH      "/tmp"
 #define FS_BUFFER_EXTENSION ".share"
@@ -21,13 +27,13 @@ FSBufferMgr::~FSBufferMgr()
     clear();
 }
 
-int32_t FSBufferMgr::allocate(void **buf, int64_t len)
+int32_t FSBufferMgr::alloc(void **buf, int64_t len)
 {
     int32_t fd = -1;
-    return allocate(buf, len, &fd);
+    return alloc(buf, len, &fd);
 }
 
-int32_t FSBufferMgr::allocate(void **buf, int64_t len, int32_t *fd)
+int32_t FSBufferMgr::alloc(void **buf, int64_t len, int32_t *fd)
 {
     int32_t rc = NO_ERROR;
     Buffer buffer;
@@ -35,7 +41,7 @@ int32_t FSBufferMgr::allocate(void **buf, int64_t len, int32_t *fd)
 
     if (SUCCEED(rc)) {
         aligned = align_len_to_size(len, mPageSize);
-        rc = allocate(&buffer, aligned);
+        rc = alloc(&buffer, aligned);
         if (SUCCEED(rc)) {
             *buf = buffer.ptr;
             *fd  = buffer.fd;
@@ -46,7 +52,7 @@ int32_t FSBufferMgr::allocate(void **buf, int64_t len, int32_t *fd)
     return rc;
 }
 
-int32_t FSBufferMgr::allocate(Buffer *buf, int64_t len)
+int32_t FSBufferMgr::alloc(Buffer *buf, int64_t len)
 {
     int32_t rc = NO_ERROR;
     int32_t fd = -1;
@@ -59,7 +65,8 @@ int32_t FSBufferMgr::allocate(Buffer *buf, int64_t len)
         fsName += PROJNAME;
         rc = access(fsName.c_str(), R_OK | W_OK);
         if (FAILED(rc)) {
-            LOGI(mModule, "FS file dir %s does not exist, create it.", DUMP_PATH);
+            LOGI(mModule, "FS file dir %s does not exist, create it.",
+                fsName.c_str());
             unlink(fsName.c_str());
             rc = mkdir(fsName.c_str(), 0755);
             if (FAILED(rc)) {
@@ -149,7 +156,7 @@ int32_t FSBufferMgr::removeNotOccupiedFiles(const std::string &basePath)
                 }
             } else if (dp->d_type & DT_REG) {
                 if (path.rfind(FS_BUFFER_EXTENSION) != std::string::npos &&
-                    access(path, R_OK | W_OK) == 0) {
+                    access(path.c_str(), R_OK | W_OK) == 0) {
                     files.push_back(path);
                 }
             }
@@ -309,7 +316,7 @@ int32_t FSBufferMgr::release(Buffer *buf)
             // Just have a try
             // May failed since shared to other process
             // RemoveNotOccupiedFiles() will take care it in this case
-            unlink(fsName.c_str());
+            unlink(buf->fsName.c_str());
         }
     }
 

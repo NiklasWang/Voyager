@@ -1,29 +1,26 @@
 #include "BufferMgr.h"
 
 #if defined(BUILD_LINUX_X86_64) || defined(BUILD_LINUX_X86)
-#include "FSBufferMgr.h"
-#else defined(BUILD_ANDROID_AP)
-#include "IonBufferMgr.h"
+  #include "FSBufferMgr.h"
+#elif defined(BUILD_ANDROID_AP)
+  #include "IonBufferMgr.h"
 #else
-#error Not supported this platform, supported BUILD_LINUX_X86_64, BUILD_LINUX_X86 or BUILD_ANDROID_AP.
+  #error Not supported this platform, supported BUILD_LINUX_X86_64, BUILD_LINUX_X86 or BUILD_ANDROID_AP.
 #endif
 
-#define CREATE_IMPL() \
-    ({ \
-#if defined(BUILD_LINUX_X86_64) || defined(BUILD_LINUX_X86) \
-        new IonBufferMgr(); \
-#else defined(BUILD_ANDROID_AP) \
-        new FSBufferMgr(); \
+#if defined(BUILD_LINUX_X86_64) || defined(BUILD_LINUX_X86)
+  #define CREATE_IMPL() new FSBufferMgr();
+#elif defined(BUILD_ANDROID_AP)
+  #define CREATE_IMPL() new IonBufferMgr();
 #endif
-    })
 
 #define CONSTRUCT_IMPL() \
     ({ \
         int32_t __rc = NO_ERROR; \
         if (ISNULL(mMgr)) { \
-            CREATE_IMPL(); \
+            mMgr = CREATE_IMPL(); \
             if (ISNULL(mMgr)) { \
-                LOGE(MODULE_BUF_MANAGER, "Failed to create buffer manager."); \
+                LOGE(MODULE_BUFFER_MANAGER, "Failed to create buffer manager."); \
                 __rc = NOT_INITED; \
             } \
         } \

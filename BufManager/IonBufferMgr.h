@@ -2,9 +2,9 @@
 #define _ION_BUFFER_MANAGER_H__
 
 #include <list>
-#include <pthread>
+#include <pthread.h>
 
-#include "common.h"
+#include "Common.h"
 #include "BufferMgrIntf.h"
 #include "IonOperator.h"
 

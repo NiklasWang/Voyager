@@ -1,5 +1,6 @@
 #include "IonBufferMgr.h"
 #include "IonBufferMgrImpl.h"
+#include "AutoLock.h"
 
 namespace voyager {
 
@@ -64,22 +65,22 @@ int32_t IonBufferMgr::deinit()
         if (ISNULL(mImpl)) { \
             __rc = init(); \
             if (FAILED(__rc)) { \
-                LOGE(mModule, "Failed to init ion buffer mgr, %d", rc); \
+                LOGE(mModule, "Failed to init ion buffer mgr, %d", __rc); \
             } \
         } \
         __rc; \
     })
 
-int32_t IonBufferMgr::allocate(void **buf, int64_t len)
+int32_t IonBufferMgr::alloc(void **buf, int64_t len)
 {
     int32_t rc = INIT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->allocate(buf, len) : rc;
+    return SUCCEED(rc) ? mImpl->alloc(buf, len) : rc;
 }
 
-int32_t IonBufferMgr::allocate(void **buf, int64_t len, int32_t *fd)
+int32_t IonBufferMgr::alloc(void **buf, int64_t len, int32_t *fd)
 {
     int32_t rc = INIT_IMPL_ONCE();
-    return SUCCEED(rc) ? mImpl->allocate(buf, len, fd) : rc;
+    return SUCCEED(rc) ? mImpl->alloc(buf, len, fd) : rc;
 }
 
 int32_t IonBufferMgr::import(void **buf, int32_t fd, int64_t len)
