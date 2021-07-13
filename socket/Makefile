@@ -9,7 +9,7 @@ dependence := $(sources:.cpp=.d)
 
 SHARED_LIBS     =
 STATIC_LIBS     =
-INCLUDE_MODULE  = $(GLOBAL_SHARED_LIBS) $(GLOBAL_STATIC_LIBS)
+INCLUDE_MODULE  = $(GLOBAL_SHARED_LIBS) $(GLOBAL_STATIC_LIBS) libthreads
 
 include $(MAKE_RULE)/find.library.make.rule 
 

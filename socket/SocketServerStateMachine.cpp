@@ -200,7 +200,7 @@ int32_t SocketServerStateMachine::destruct()
             mClientFd = -1;
         }
         if (mOwnServer && mServerFd > 0) {
-            stop_server(mServerFd, mSocketName);
+            stop_server(mServerFd, mSocketName.c_str());
             mServerFd = -1;
         }
     }
@@ -214,7 +214,7 @@ int32_t SocketServerStateMachine::processTask(cmd_info *info)
 
     switch (info->cmd) {
         case CMD_START_SERVER: {
-            rc = start_server(&mServerFd, mSocketName);
+            rc = start_server(&mServerFd, mSocketName.c_str());
             if (FAILED(rc)) {
                 LOGE(mModule, "Failed to start server, %d", rc);
             } else {

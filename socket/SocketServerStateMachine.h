@@ -3,9 +3,10 @@
 
 #include <string>
 
-#include "common.h"
+#include "Common.h"
 #include "SyncType.h"
 #include "ThreadT.h"
+#include "configuration.h"
 
 namespace voyager {
 

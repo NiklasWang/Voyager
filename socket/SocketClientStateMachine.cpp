@@ -171,7 +171,7 @@ int32_t SocketClientStateMachine::processTask(cmd_info *info)
 
     switch (info->cmd) {
         case CMD_CONNECT_SERVER: {
-            rc = connect_to_server(&mServerFd, mSocketName);
+            rc = connect_to_server(&mServerFd, mSocketName.c_str());
             if (FAILED(rc)) {
                 LOGD(mModule, "Failed to connect server, "
                     "may not started, %d", rc);
