@@ -12,8 +12,8 @@ namespace voyager {
 
 class ClientCore :
     public ClientIntf,
-    public Identifier,
-    public noncopyable {
+    virtual public Identifier,
+    virtual public noncopyable {
 public:
 
     virtual int32_t send(void *dat, int64_t len) override;

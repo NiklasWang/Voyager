@@ -1,4 +1,8 @@
 #include "ClientCore.h"
+#include "IntfImpl.h"
+#include "protocol.h"
+#include "AutoLock.h"
+#include "OverallControlLayout.h"
 
 namespace voyager {
 
@@ -65,7 +69,7 @@ int32_t ClientCore::send(int32_t fd, int64_t len, int32_t format)
         if (NOTNULL(handler))
         rc = handler->send(fd, len, format);
         if (FAILED(rc)) {
-            LOGE(mModule, "Send frame %p %d %d failed, %d", dat, len, format, rc);
+            LOGE(mModule, "Send frame %d %d %d failed, %d", fd, len, format, rc);
         }
     }
 
@@ -111,7 +115,7 @@ int32_t ClientCore::createHandlerIfRequired(RequestType type)
     if (SUCCEED(rc)) {
         if (ISNULL(mRequests[type])) {
             localHandler = createHandler(type, mName);
-            if (localHandler)) {
+            if (ISNULL(localHandler)) {
                 LOGE(mModule, "Failed to create %s client.",
                     getRequestName(type));
                 rc = NO_MEMORY;
@@ -178,7 +182,7 @@ bool ClientCore::requested(RequestType type)
 
     if (SUCCEED(rc)) {
         if (!mConnected) {
-            AutoMutex mutex;
+            AutoLock mutex;
             if (!mConnected) {
                 rc = connectServer();
                 if (FAILED(rc)) {
@@ -190,7 +194,7 @@ bool ClientCore::requested(RequestType type)
 
     if (SUCCEED(rc)) {
         if (ISNULL(mOverallControlSingleton) && !mSkipOverallControl) {
-            AutoMutex mutex;
+            AutoLock mutex;
             if (ISNULL(mOverallControlSingleton) && !mSkipOverallControl) {
                 rc = importOverallControl();
                 if (FAILED(rc)) {
@@ -202,7 +206,8 @@ bool ClientCore::requested(RequestType type)
 
     if (SUCCEED(rc)) {
         std::string msg = SOCKET_CLIENT_QUERY_REQUEST;
-        msg.replace("%TYPE%", std::to_string(type));
+        size_t pos = msg.find("%TYPE%");
+        msg.replace(pos, strlen("%TYPE%"), std::to_string(type));
         rc = mSC.sendMsg(msg.c_str(), msg.length());
         if (FAILED(rc)) {
             LOGE(mModule, "Failed to send msg \"%s\" to server, %d",
@@ -229,7 +234,7 @@ bool ClientCore::requested(RequestType type)
         }
     }
 
-    return rc;
+    return SUCCEED(rc) ? result : false;
 }
 
 int32_t ClientCore::importOverallControl()
@@ -432,7 +437,7 @@ int32_t ClientCore::destruct()
 }
 
 ClientCore::ClientCore(const std::string &name) :
-    Identifier(MODULE_CLIENT_CORE, "ClientCore", "1.0.0")
+    Identifier(MODULE_CLIENT_CORE, "ClientCore", "1.0.0"),
     mName(name),
     mConstructed(false),
     mConnected(false),

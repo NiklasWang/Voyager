@@ -1,4 +1,4 @@
-#include "ClientIntfImpl.h"
+#include "IntfImpl.h"
 
 namespace voyager {
 

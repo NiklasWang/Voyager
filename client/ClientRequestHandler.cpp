@@ -1,4 +1,9 @@
+#include <sstream>
+
 #include "ClientRequestHandler.h"
+#include "Times.h"
+#include "protocol.h"
+#include "IntfImpl.h"
 
 #define CONNECT_SERVER_RETRY_COUNT 10
 #define CONNECT_SERVER_RETRY_TIME  10 // ms
@@ -142,6 +147,11 @@ int32_t RequestHandler::send(int32_t event, int32_t arg1, int32_t arg2)
     return rc;
 }
 
+bool RequestHandler::requested(RequestType type)
+{
+    return false;
+}
+
 int32_t RequestHandler::connectServer()
 {
     int32_t rc = NO_ERROR;
@@ -180,8 +190,8 @@ int32_t RequestHandler::sendPrivateMsg(RequestType type, int64_t len)
         msg.replace(pos1, strlen("%TYPE%"), std::to_string(type));
         size_t pos2 = msg.find("%PRIVATE%");
         std::stringstream ss;
-        len >> ss;
-        msg.replace(pos2, strlen("%PRIVATE%"), ss.string());
+        ss << len;
+        msg.replace(pos2, strlen("%PRIVATE%"), ss.str());
     }
 
     if (SUCCEED(rc)) {
@@ -206,7 +216,7 @@ int32_t RequestHandler::sendPrivateMsg(RequestType type, int64_t len, int32_t fo
         size_t pos2 = msg.find("%PRIVATE%");
         std::stringstream ss;
         ss << len << ";" << std::to_string(format);
-        msg.replace(pos2, strlen("%PRIVATE%"), ss.to_string());
+        msg.replace(pos2, strlen("%PRIVATE%"), ss.str());
     }
 
     if (SUCCEED(rc)) {
@@ -332,7 +342,7 @@ bool RequestHandler::validFd(int32_t fd)
 
 const char *RequestHandler::getName()
 {
-    return mName;
+    return mName.c_str();
 }
 
 RequestType RequestHandler::getType()
@@ -408,15 +418,14 @@ int32_t RequestHandler::destruct()
 }
 
 RequestHandler::RequestHandler(RequestType type, const std::string &name) :
-    Identifier(MODULE_CLINET_HANDLER, "ClientRequestHandler", "1.0.0"),
+    Identifier(MODULE_CLIENT_HANDLER, "ClientRequestHandler", "1.0.0"),
     mConstructed(false),
     mType(type),
     mName(name),
     mConnected(false)
 {
-    ASSERT_LOG(mModule, getRequestType(type) != REQUEST_TYPE_MAX_INVALID,
-        "Invalid request type %d", type);
-    if (ISNULL(name)) {
+    ASSERT_LOG(mModule, checkValid(type), "Invalid request type %d", type);
+    if (mName == "") {
         mName = "generic request client handler";
     }
 }
