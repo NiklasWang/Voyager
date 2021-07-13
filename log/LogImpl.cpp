@@ -47,7 +47,8 @@ int8_t gDebugController[][LOG_TYPE_MAX_INVALID + 1] = {
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_BUFFER_MANAGER
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_ION_HELPER
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_FS_HELPER
-    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_REQUEST_HANDLER
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_SERVER_HANDLER
+    {     0,    1,    1,    1,    1,    1,    0}, // MODULE_CLIENT_HANDLER
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_DATA_SERVER
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_DATA_CLIENT
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_FD_SERVER
@@ -56,6 +57,11 @@ int8_t gDebugController[][LOG_TYPE_MAX_INVALID + 1] = {
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_FRAME_CLIENT
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_EVENT_SERVER
     {     0,    1,    1,    1,    1,    1,    0}, // MODULE_EVENT_CLIENT
+
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_COMMON
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_UTILS
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_THREAD_POOL
+    {     0,    0,    1,    1,    1,    1,    0}, // MODULE_MEMORY_POOL
     {     1,    1,    1,    1,    1,    1,    1}, // MODULE_MAX_INVALID
 };
 

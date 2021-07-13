@@ -3,13 +3,39 @@
 
 namespace voyager {
 
+MODULE_OTHERS,
+MODULE_SOCKET,
+MODULE_CLIENT,
+MODULE_SERVER,
+MODULE_SERVER_IMPL,
+MODULE_CLIENT_CORE,
+MODULE_SERVER_CORE,
+MODULE_OVERALL_CONTROL,
+MODULE_BUFFER_MANAGER,
+MODULE_ION_HELPER,
+MODULE_FS_HELPER,
+MODULE_SERVER_HANDLER,
+MODULE_CLIENT_HANDLER,
+MODULE_DATA_SERVER,
+MODULE_DATA_CLIENT,
+MODULE_FD_SERVER,
+MODULE_FD_CLIENT,
+MODULE_FRAME_SERVER,
+MODULE_FRAME_CLIENT,
+MODULE_EVENT_SERVER,
+MODULE_EVENT_CLIENT,
+
+MODULE_COMMON,
+MODULE_UTILS,
+MODULE_THREAD_POOL,
+MODULE_MEMORY_POOL,
+
 
 static const char *const gModuleName[] = {
     [MODULE_OTHERS]          = "others",
     [MODULE_SOCKET]          = "socket",
     [MODULE_CLIENT]          = "client",
     [MODULE_SERVER]          = "server",
-    [MODULE_CLIENT_IMPL]     = "client impl",
     [MODULE_SERVER_IMPL]     = "server impl",
     [MODULE_CLIENT_CORE]     = "client core",
     [MODULE_SERVER_CORE]     = "server core",
@@ -17,7 +43,8 @@ static const char *const gModuleName[] = {
     [MODULE_BUFFER_MANAGER]  = "buffer manager",
     [MODULE_ION_HELPER]      = "android ion helper",
     [MODULE_FS_HELPER]       = "fs helper",
-    [MODULE_REQUEST_HANDLER] = "request handler",
+    [MODULE_SERVER_HANDLER]  = "request handler",
+    [MODULE_CLIENT_HANDLER]  = "request handler",
     [MODULE_DATA_SERVER]     = "data server",
     [MODULE_DATA_CLIENT]     = "data client",
     [MODULE_FD_SERVER]       = "fd server",
@@ -26,6 +53,11 @@ static const char *const gModuleName[] = {
     [MODULE_FRAME_CLIENT]    = "frame client",
     [MODULE_EVENT_SERVER]    = "event server",
     [MODULE_EVENT_CLIENT]    = "event client",
+
+    [MODULE_COMMON]          = "common",
+    [MODULE_UTILS]           = "utils",
+    [MODULE_THREAD_POOL]     = "thread pool",
+    [MODULE_MEMORY_POOL]     = "memory pool",
     [MODULE_MAX_INVALID]     = "max_invalid",
 };
 
@@ -34,7 +66,6 @@ static const char *const gModuleShortName[] = {
     [MODULE_SOCKET]          = "[  SOK]",
     [MODULE_CLIENT]          = "[CLIEN]",
     [MODULE_SERVER]          = "[SERVE]",
-    [MODULE_CLIENT_IMPL]     = "[CIMPL]",
     [MODULE_SERVER_IMPL]     = "[SIMPL]",
     [MODULE_CLIENT_CORE]     = "[CCORE]",
     [MODULE_SERVER_CORE]     = "[SCORE]",
@@ -42,7 +73,8 @@ static const char *const gModuleShortName[] = {
     [MODULE_BUFFER_MANAGER]  = "[ BUFM]",
     [MODULE_ION_HELPER]      = "[IONHP]",
     [MODULE_FS_HELPER]       = "[ FSHP]",
-    [MODULE_REQUEST_HANDLER] = "[   QH]",
+    [MODULE_SERVER_HANDLER]  = "[SERVH]",
+    [MODULE_CLIENT_HANDLER]  = "[ CLIH]",
     [MODULE_DATA_SERVER]     = "[ DATS]",
     [MODULE_DATA_CLIENT]     = "[ DATC]",
     [MODULE_FD_SERVER]       = "[  FDS]",
@@ -51,6 +83,11 @@ static const char *const gModuleShortName[] = {
     [MODULE_FRAME_CLIENT]    = "[FRAMC]",
     [MODULE_EVENT_SERVER]    = "[ EVTS]",
     [MODULE_EVENT_CLIENT]    = "[ EVTC]",
+
+    [MODULE_COMMON]          = "[ COMN]",
+    [MODULE_UTILS]           = "[ UTLS]",
+    [MODULE_THREAD_POOL]     = "[THREA]",
+    [MODULE_MEMORY_POOL]     = "[  MEM]",
     [MODULE_MAX_INVALID]     = "[INVAL]",
 };
 
