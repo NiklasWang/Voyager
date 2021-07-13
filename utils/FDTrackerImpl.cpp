@@ -76,7 +76,7 @@ bool FDTrackerImpl::FDInfo::operator==(const FDTrackerImpl::FDInfo &rhs) const
 
 void FDTrackerImpl::FDInfo::header()
 {
-    LOGI(MODULE_FD_TRACKER,
+    LOGI(MODULE_UTILS,
         "  FD   |  Line | Function | File | Thread ID | Comments");
 }
 
@@ -84,13 +84,13 @@ void FDTrackerImpl::FDInfo::dump(const char *header)
 {
     std::string fmt(header);
     fmt += "%6d : %6d | %s | %s | %lu | %s";
-    LOGI(MODULE_FD_TRACKER, fmt.c_str(), fd, line,
+    LOGI(MODULE_UTILS, fmt.c_str(), fd, line,
         func.c_str(), file.c_str(), thread, comment.c_str());
 }
 
 FDTrackerImpl::FDTrackerImpl() :
     mDebug(false),
-    mModule(MODULE_FD_TRACKER),
+    mModule(MODULE_UTILS),
     mSize(0)
 {
 }

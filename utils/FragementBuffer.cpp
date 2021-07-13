@@ -40,7 +40,7 @@ int32_t FragementBuffer::dump(const char *file, const char *func, const int32_t 
 }
 
 FragementBuffer::FragementBuffer(uint32_t eachCapacity) :
-    mModule(MODULE_OBJECT_BUFFER),
+    mModule(MODULE_UTILS),
     mEachCapacity(eachCapacity)
 {
 }

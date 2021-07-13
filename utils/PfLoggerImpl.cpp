@@ -7,7 +7,7 @@ namespace voyager {
 int32_t PfLoggerImpl::Timer::cnt = 0;
 
 PfLoggerImpl::PfLoggerImpl() :
-    mModule(MODULE_PERFORMANCE_CHECKER)
+    mModule(MODULE_UTILS)
 {
 }
 
@@ -213,14 +213,14 @@ int64_t PfLoggerImpl::Timer::Set::operator()()
 
 void PfLoggerImpl::Timer::Set::output()
 {
-    LOGI(MODULE_PERFORMANCE_CHECKER,
+    LOGI(MODULE_UTILS,
         " >>>> start time %lld, stop time %lld, diff time %.3f ms",
         start(), stop(), 1.0 * (*this)() / 1000);
 }
 
 PfLoggerImpl::Timer::Timer(const char *n, uint32_t t) :
     name(n), times(t), printed(false),
-    id(cnt++), module(MODULE_PERFORMANCE_CHECKER)
+    id(cnt++), module(MODULE_UTILS)
 {
 }
 

@@ -56,7 +56,7 @@ SyncType &SyncType::operator=(const SyncType::value_type &rhs)
             mType = rhs;
             mSem = new Semaphore();
         } else if (mType == SYNC_TYPE && rhs == SYNC_TYPE) {
-            LOGE(MODULE_SYNC_CONTROLLER,
+            LOGE(MODULE_UTILS,
                 "Forbidden to override a sync type");
         }
     }

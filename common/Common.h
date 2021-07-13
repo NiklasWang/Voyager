@@ -13,7 +13,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "Interface.h"
 #include "Version.h"
 #include "Modules.h"
 #include "Identifier.h"

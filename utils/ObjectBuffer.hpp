@@ -21,7 +21,7 @@ template<typename T>
 ObjectBuffer<T>::ObjectBuffer(uint32_t capacity) :
     mCapacity(capacity),
     mCnt(0),
-    mModule(MODULE_OBJECT_BUFFER)
+    mModule(MODULE_UTILS)
 {
 }
 

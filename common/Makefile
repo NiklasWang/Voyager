@@ -10,7 +10,7 @@ dependence := $(sources:.cpp=.d)
 
 SHARED_LIBS     =
 STATIC_LIBS     =
-INCLUDE_MODULE  =
+INCLUDE_MODULE  = liblog libutils
 
 
 include $(MAKE_RULE)/find.library.make.rule
