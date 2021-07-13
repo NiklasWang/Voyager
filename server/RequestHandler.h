@@ -28,7 +28,7 @@ public:
 public:
     virtual int32_t construct() override;
     virtual int32_t destruct() override;
-    RequestHandler(RequestType type, const char *name, CallbackIntf *cb);
+    RequestHandler(RequestType type, CallbackIntf *cb);
     virtual ~RequestHandler();
 
 protected:

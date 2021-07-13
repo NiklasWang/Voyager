@@ -126,7 +126,7 @@ int32_t EventServer::enqueue(void *dat, int32_t format)
 }
 
 EventServer::EventServer(CallbackIntf *cb) :
-    RequestHandler(EVENT, "event_server_rquest_handler", cb),
+    RequestHandler(EVENT, cb),
     Identifier(MODULE_EVENT_SERVER, "EventServer", "1.0.0")
 {
 }

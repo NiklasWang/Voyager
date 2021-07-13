@@ -431,8 +431,9 @@ int32_t ClientCore::destruct()
     return rc;
 }
 
-ClientCore::ClientCore(const char *name) :
+ClientCore::ClientCore(const std::string &name) :
     Identifier(MODULE_CLIENT_CORE, "ClientCore", "1.0.0")
+    mName(name),
     mConstructed(false),
     mConnected(false),
     mSkipOverallControl(false),

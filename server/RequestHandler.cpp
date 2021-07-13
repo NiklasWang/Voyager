@@ -341,19 +341,16 @@ int32_t RequestHandler::destruct()
     return final;
 }
 
-RequestHandler::RequestHandler(RequestType type, const char *name, CallbackIntf *cb) :
-    Identifier(MODULE_REQUEST_HANDLER, "RequestHandler", "1.0.0"),
+RequestHandler::RequestHandler(RequestType type, CallbackIntf *cb) :
+    Identifier(MODULE_SERVER_HANDLER, "RequestHandler", "1.0.0"),
     mConstructed(false),
-    mName(name),
     mType(type),
     mThreads(NULL),
     mCb(cb)
 {
     ASSERT_LOG(mModule, NOTNULL(mCb), "Ops shouldn't be NULL");
     ASSERT_LOG(mModule, checkValid(mType), "Invalid request type %d", type);
-    if (mName == "") {
-        mName = "generic request handler";
-    }
+    mName = std::string(getRequestName(type)) + "_request_handler";
 }
 
 RequestHandler::~RequestHandler()

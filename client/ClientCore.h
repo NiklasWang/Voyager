@@ -25,7 +25,7 @@ public:
 public:
     int32_t construct();
     int32_t destruct();
-    ClientCore();
+    ClientCore(const std::string &name);
     virtual ~ClientCore();
 
 private:

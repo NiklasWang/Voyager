@@ -51,7 +51,7 @@ int32_t FdServer::enqueue(void *dat, int32_t format)
 }
 
 FdServer::FdServer(CallbackIntf *cb) :
-    RequestHandler(FD, "fd_server_rquest_handler", cb),
+    RequestHandler(FD, cb),
     Identifier(MODULE_FD_SERVER, "FdServer", "1.0.0")
 {
 }
